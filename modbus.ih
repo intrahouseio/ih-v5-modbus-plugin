@@ -1,6 +1,6 @@
 {
     "id":"modbus",
-    "description":"Modbus Master plugin for IH",
+    "description":"Modbus plugin",
     "cross":true,
-	"version":"5.0.8"
+	"version":"5.5.0"
 }
