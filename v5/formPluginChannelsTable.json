@@ -21,6 +21,7 @@
         { "prop": "r", "title": "$Read",  "type": "cb", "width": 100, "filter": true },
         { "prop": "fcr", "title": "$fcr",  "type": "text", "width": 100, "filter": true },
         { "prop": "gr", "title": "$gr",  "type": "cb", "width": 100, "hide":"!data.r", "filter": true  },
+        { "prop": "calc", "title": "$Devhard_Calc", "type": "input", "hide": "!data.r" },
         { "prop": "w", "title": "$Write",  "type": "cb", "width": 100, "filter": true },
         { "prop": "did", "title": "$Device",  "type": "link", "command":"forward", "width": 200, "filter": true  },
         { "prop": "prop", "title": "$DeviceProperty", "type": "text",  "width": 150, "filter": true },
