@@ -15,6 +15,8 @@
     "fcr":"Modbus functions",
     "offset":"Offset",
     "gr":"Allow reading of address range",
+    "grman":"Manual group of address range",
+    "grmanstr":"Group name",
     "usek":"Value transformation",
     "ks0":"Min value of the logic level ",
     "ks":"Max value of the logic level",

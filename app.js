@@ -169,11 +169,11 @@ module.exports = {
 
     this.channels.forEach(item => {
       item.unitid = parseInt(item.unitid);
-      this.address = parseInt(item.address);
+      item.address = parseInt(item.address);
       item.vartype = this.getVartype(item.vartype);
     });
 
-    this.polls = tools.getPolls(this.channels, this.params);
+    this.polls = tools.getPolls(this.channels.filter(item => item.r), this.params);
     this.plugin.log(`Polls = ${util.inspect(this.polls)}`, 2);
 
     this.queue = tools.getPollArray(this.polls);

@@ -32,7 +32,8 @@ function getPolls(channels, params) {
   channels.sort(byorder('unitid,fcr,address'));
 
   // Выбираем переменные, которые можно читать группами, и формируем команды опроса
-  const config = channels.filter(item => item.gr);
+  // Формируем автоматические группы
+  const config = channels.filter(item => item.gr && !item.grman && item.r);
   let i = 0;
   let current;
   let length;
@@ -68,7 +69,7 @@ function getPolls(channels, params) {
     result.push(Object.assign({ length }, current));
   }
 
-  // Результат д б такой:
+  // Результат должен быть такой:
   /*
     return [
         {unitid:1, desc:'AI', address: 4000, length:4, fcr:'4', ref:
@@ -77,7 +78,40 @@ function getPolls(channels, params) {
         }    
     ];
     */
+  let currentMan;
+  let lengthMan;
 
+  //Добавить ручную группировку чтения
+  const configMan = channels.filter(item => item.grman && item.r);
+  configMan.sort(byorder('grmanstr,address'));
+  configMan.forEach(item => {
+    if (!currentMan || isDiffBlockMan(item) || getLengthManAfterAdd(item) > maxReadLen) {
+      // Записать предыдущий элемент
+      if (currentMan && lengthMan) {
+        result.push(Object.assign({ length : lengthMan }, currentMan));
+      }
+
+      lengthMan = 0;
+      currentMan = {
+        unitid: item.unitid,
+        desc: item.desc,
+        fcr: item.fcr,
+        address: item.address,
+        grmanstr: item.grmanstr,
+        ref: []
+      };
+    }
+    lengthMan = getLengthManAfterAdd(item);
+
+    let refobjMan = getRefobj(item);
+    refobjMan.widx = item.address - currentMan.address;
+    currentMan.ref.push(refobjMan);
+  })
+
+  if (currentMan && lengthMan) {
+    result.push(Object.assign({ length: lengthMan }, currentMan));
+  }
+  
   // Добавить негрупповое чтение
   channels
     .filter(item => !item.gr && item.r)
@@ -102,8 +136,16 @@ function getPolls(channels, params) {
     return citem.unitid != current.unitid || citem.fcr != current.fcr;
   }
 
+  function isDiffBlockMan(citem) {
+    return  citem.grmanstr != currentMan.grmanstr; 
+  }
+
   function getLengthAfterAdd(citem) {
     return citem.address - current.address + getVarLen(citem.vartype);
+  }
+
+  function getLengthManAfterAdd(citem) {
+    return citem.address - currentMan.address + getVarLen(citem.vartype);
   }
 }
 
@@ -303,7 +345,7 @@ function parseBufferWrite(value, item) {
     case 'uint16be':
       buffer = Buffer.alloc(2);
       if (value > 65565) {
-        console.log('TOO BIG NUMBER! '+value);
+        console.log('TOO BIG NUMBER! ' + value);
       }
       buffer.writeUInt16BE(value, 0);
       break;
@@ -441,7 +483,7 @@ function parseBufferWrite(value, item) {
 
 function writeValue(buffer, item) {
   let val = item.usek ? transformStoH(buffer, item) : buffer;
-  console.log('tools.writeValue val = '+util.inspect(val))
+  console.log('tools.writeValue val = ' + util.inspect(val))
   return parseBufferWrite(val, item);
 }
 
@@ -508,7 +550,7 @@ function byorder(ordernames, direction, parsingInt) {
     arrForSort = ordernames.split(',');
   }
 
-  return function(o, p) {
+  return function (o, p) {
     if (typeof o !== 'object' || typeof p !== 'object' || arrForSort.length === 0) {
       return 0;
     }

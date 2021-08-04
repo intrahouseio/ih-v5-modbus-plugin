@@ -156,6 +156,8 @@
       "default": "3"
     },
     {"prop": "gr", "title": "$gr", "type": "cb", "hide": "!data.p3.r", "default": 1},
+    {"prop": "grman", "title": "$grman", "type": "cb", "hide": "!data.p3.r || !data.p3.gr", "default": 0},
+    {"prop": "grmanstr", "title": "$grmanstr", "type": "input", "hide": "!data.p3.r || !data.p3.grman", "default": ""},
 
     { "prop": "bit", "title": "Извлечь битовое значение", "type": "cb", "hide": "!data.p3.r || data.p2.vartype.id == 'bool'" },
     { "prop": "offset", "title": "Смещение (0-15)", "type": "number", "hide": "!data.p3.r || !data.p3.bit || data.p2.vartype.id == 'bool'" },
