@@ -5,8 +5,6 @@ const modbus = require("./app");
 
 (async () => {
   plugin.log("Modbus Master plugin has started.");
-  sendProcessInfo();
-  setInterval(sendProcessInfo, 10000);
   try {
     modbus.params = await plugin.params.get();
     plugin.log('Received params...');
@@ -24,11 +22,3 @@ const modbus = require("./app");
     plugin.exit(8, `Error! Message: ${util.inspect(err)}`);
   }
 })();
-
-function sendProcessInfo() {
-  const mu = process.memoryUsage();
-  const memrss = Math.floor(mu.rss/1024)
-  const memheap = Math.floor(mu.heapTotal/1024)
-  const memhuse = Math.floor(mu.heapUsed/1024)
-  process.send({type:'procinfo', data:{memrss,memheap, memhuse }});
-}
