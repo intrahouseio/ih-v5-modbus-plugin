@@ -55,7 +55,7 @@ module.exports = {
         const item = this.formWriteObject(aitem);
         if (item) {
           this.queue.unshift(item);
-          this.plugin.log(`Command to send: ${util.inspect(this.queue)}`);
+          this.plugin.log(`Command to send: ${util.inspect(this.queue)}`, 2);
         } 
         /*
         let id = item.id;
