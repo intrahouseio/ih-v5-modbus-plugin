@@ -8,7 +8,7 @@ const modbus = require("./app");
   try {
     modbus.params = await plugin.params.get();
     plugin.log('Received params...');
-
+    console.log("Params:", util.inspect(modbus.params));
     modbus.channels = await plugin.channels.get();
     if (modbus.channels.length > 0) {
       plugin.log(`Received ${modbus.channels.length} channels...`);

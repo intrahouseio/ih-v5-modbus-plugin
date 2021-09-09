@@ -30,7 +30,7 @@
     "parity": "Parity",
     "dataBits": "Data bits",
     "stopBits": "Stop bits",
-
+    "sendChanges": "Send only changes",
     "actions":"Commands",
     "action":"Command"
 }

@@ -177,6 +177,11 @@
       "prop": "showbyteorder",
       "title": "Настроить порядок байт",
       "type": "cb"
+    },
+    {
+      "prop" : "sendChanges",
+      "title": "$sendChanges",
+      "type": "cb"
     }
   ],
 
