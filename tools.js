@@ -18,7 +18,7 @@ function getDataFromResponse(buf, ref) {
     return;
   }
 
-  return ref.map(item => ({ id: item.id, value: readValue(buf, item) }));
+  return ref.map(item => ({ id: item.id, value: readValue(buf, item), title:item.title }));
 }
 
 function getPolls(channels, params) {
@@ -150,8 +150,10 @@ function getPolls(channels, params) {
 }
 
 function getRefobj(item) {
+  const title = item.parentname ? item.parentname+'/'+item.chan : item.chan;
   let refobj = {
     id: item.id,
+    title,
     vartype: item.vartype,
     widx: 0
   };

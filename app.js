@@ -106,6 +106,7 @@ module.exports = {
       res.vartype = chanItem.vartype;
       res.force = chanItem.r ? 1 : 0;
     }
+    if (chanItem.parentoffset) res.address += parseInt(chanItem.parentoffset);
 
     if (!res.vartype) {
       this.plugin.log(
@@ -190,6 +191,7 @@ module.exports = {
     this.channels.forEach((item) => {
       item.unitid = parseInt(item.unitid);
       item.address = parseInt(item.address);
+      if (item.parentoffset) item.address += parseInt(item.parentoffset);
       item.vartype = this.getVartype(item.vartype);
     });
 
