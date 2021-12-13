@@ -18,7 +18,7 @@ function getDataFromResponse(buf, ref) {
     return;
   }
 
-  return ref.map(item => ({ id: item.id, value: readValue(buf, item), title:item.title }));
+  return ref.map(item => ({ id: item.id, value: readValue(buf, item), title:item.title, chstatus: 0 }));
 }
 
 function getPolls(channels, params) {

@@ -254,6 +254,10 @@ module.exports = {
           );
       }
     } catch (err) {
+      let charr = this.channels.map((item)=>{
+        return {id: item.id, chstatus: 1, title:item.title}
+      });
+      this.plugin.sendData(charr);
       this.checkError(err);
       this.plugin.log(`Connection fail! EXIT`, 1);
       process.exit(1);
@@ -283,12 +287,13 @@ module.exports = {
       }, address = ${this.showAddress(item.address)}, length = ${item.length}`,
       1
     );
-
+  
     try {
       let res = await this.modbusReadCommand(
         item.fcr,
         item.address,
-        item.length
+        item.length,
+        item.ref
       );
       if (res && res.buffer) {
         if (this.params.sendChanges == 1) {
@@ -308,6 +313,7 @@ module.exports = {
       }
     } catch (err) {
       this.checkError(err);
+      
     }
 
     if (allowSendNext !== undefined && allowSendNext === true) {
@@ -332,7 +338,8 @@ module.exports = {
       let res = await this.modbusReadCommand(
         item.fcr,
         item.address,
-        item.length
+        item.length,
+        item.ref
       );
 
       return tools.parseBufferRead(res.buffer, {
@@ -344,7 +351,7 @@ module.exports = {
     }
   },
 
-  async modbusReadCommand(fcr, address, length) {
+  async modbusReadCommand(fcr, address, length, ref) {
     try {
       fcr = Number(fcr);
 
@@ -361,6 +368,10 @@ module.exports = {
           throw new Error(`Функция ${fcr} на чтение не поддерживается`);
       }
     } catch (err) {
+      let charr = ref.map((item)=>{
+        return {id: item.id, chstatus: 1, title:item.title}
+      });
+      this.plugin.sendData(charr);
       this.checkError(err);
     }
   },

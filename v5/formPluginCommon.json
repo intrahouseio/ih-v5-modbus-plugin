@@ -58,8 +58,8 @@
     {
       "prop": "serialport",
       "title": "$port",
-      "type": "input",
-      "default": "/dev/ttyUSB0",
+      "type": "droplist",
+      "data": "__tool.comports",
       "hide": "!data.p1.transport.id || (data.p1.transport.id !== \"rtu\" && data.p1.transport.id !== \"ascii\")"
     },
 
