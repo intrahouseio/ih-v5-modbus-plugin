@@ -82,7 +82,7 @@ function getPolls(channels, params) {
   let lengthMan;
 
   //Добавить ручную группировку чтения
-  const configMan = channels.filter(item => item.grman && item.r);
+  const configMan = channels.filter(item => item.gr && item.grman && item.r);
   configMan.sort(byorder('grmanstr,address'));
   configMan.forEach(item => {
     if (!currentMan || isDiffBlockMan(item) || getLengthManAfterAdd(item) > maxReadLen) {
