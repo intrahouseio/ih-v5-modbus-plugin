@@ -1,15 +1,9 @@
-const util = require("util");
-const tools = require("./tools");
-const Modbus = require("modbus-serial");
+const util = require('util');
+const tools = require('./tools');
+const Modbus = require('modbus-serial');
 
-const networkErrors = [
-  "ESOCKETTIMEDOUT",
-  "ETIMEDOUT",
-  "ECONNRESET",
-  "ECONNREFUSED",
-  "EHOSTUNREACH",
-];
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const networkErrors = ['ESOCKETTIMEDOUT', 'ETIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'EHOSTUNREACH'];
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 module.exports = {
   params: {},
@@ -20,12 +14,12 @@ module.exports = {
     this.plugin = plugin;
 
     this.plugin.onAct(this.parseAct.bind(this));
-    this.plugin.onCommand(async (data) => this.parseCommand(data));
+    this.plugin.onCommand(async data => this.parseCommand(data));
 
     this.plugin.channels.onChange(() => this.updateChannels(true));
 
-    process.on("exit", this.terminatePlugin.bind(this));
-    process.on("SIGTERM", () => {
+    process.on('exit', this.terminatePlugin.bind(this));
+    process.on('SIGTERM', () => {
       this.terminatePlugin.bind(this);
       process.exit(0);
     });
@@ -34,9 +28,7 @@ module.exports = {
       await this.updateChannels(false);
 
       let connectionStr =
-        this.params.transport !== "rtu"
-          ? `${this.params.host}:${this.params.port}`
-          : this.params.serialPort;
+        this.params.transport !== 'rtu' ? `${this.params.host}:${this.params.port}` : this.params.serialPort;
 
       this.client = new Modbus();
 
@@ -52,7 +44,7 @@ module.exports = {
   },
 
   terminatePlugin() {
-    console.log("TERMINATE PLUGIN");
+    console.log('TERMINATE PLUGIN');
     if (this.client) {
       this.client.close();
     }
@@ -60,27 +52,12 @@ module.exports = {
 
   parseAct(message) {
     try {
-      message.data.forEach((aitem) => {
+      message.data.forEach(aitem => {
         const item = this.formWriteObject(aitem);
         if (item) {
-          this.queue.unshift(item);
-          this.plugin.log(`Command to send: ${util.inspect(this.queue)}`, 2);
+          this.qToWrite.push(item);
+          this.plugin.log(`Command to send: ${util.inspect(this.qToWrite)}`, 2);
         }
-        /*
-        let id = item.id;
-        let command = item.command;
-
-        if (!command) item.command = 'set';
-
-        item.address = parseInt(item.address);
-        item.value = parseInt(item.value);
-
-        item.vartype = this.getVartype(item.vartype);
-        if (id) {
-          this.queue.unshift(item);
-          this.plugin.log(`Command to send: ${util.inspect(this.queue)}`);
-        }
-        */
       });
     } catch (err) {
       this.checkError(err);
@@ -94,7 +71,7 @@ module.exports = {
       id: chanItem.id,
       unitid: chanItem.unitid,
       value: Number(chanItem.value) || 0,
-      command: chanItem.value || "set",
+      command: chanItem.value || 'set'
     };
 
     if (chanItem.diffw) {
@@ -109,9 +86,7 @@ module.exports = {
     if (chanItem.parentoffset) res.address += parseInt(chanItem.parentoffset);
 
     if (!res.vartype) {
-      this.plugin.log(
-        "ERROR: Command has empty vartype: " + util.inspect(chanItem)
-      );
+      this.plugin.log('ERROR: Command has empty vartype: ' + util.inspect(chanItem));
       return;
     }
     res.vartype = this.getVartype(res.vartype);
@@ -127,29 +102,22 @@ module.exports = {
   },
 
   async parseCommand(message) {
-    this.plugin.log(
-      `Command '${message.command}' received. Data: ${util.inspect(message)}`
-    );
+    this.plugin.log(`Command '${message.command}' received. Data: ${util.inspect(message)}`);
     let payload = [];
 
     try {
       switch (message.command) {
-        case "read":
+        case 'read':
           if (message.data !== undefined) {
             for (const item of message.data) {
-              payload.push(
-                Object.assign(
-                  { value: await this.readValueCommand(item) },
-                  item
-                )
-              );
+              payload.push(Object.assign({ value: await this.readValueCommand(item) }, item));
             }
             // payload = message.data.map(item => Object.assign({ value: this.readValueCommand(item) }, item));
           }
           this.plugin.sendResponse(Object.assign({ payload }, message), 1);
           break;
 
-        case "write":
+        case 'write':
           if (message.data !== undefined) {
             for (const item of message.data) {
               payload.push(await this.writeValueCommand(item));
@@ -174,9 +142,7 @@ module.exports = {
       await this.sendNext(true);
     }
 
-    this.plugin.log(
-      `Requested channels update. Get channels: ${getChannels ? "yes" : "no"}`
-    );
+    this.plugin.log(`Requested channels update. Get channels: ${getChannels ? 'yes' : 'no'}`);
 
     if (getChannels === true) {
       this.channels = await this.plugin.channels.get();
@@ -188,7 +154,7 @@ module.exports = {
       process.exit(8);
     }
 
-    this.channels.forEach((item) => {
+    this.channels.forEach(item => {
       item.unitid = parseInt(item.unitid);
       item.address = parseInt(item.address);
       if (item.parentoffset) item.address += parseInt(item.parentoffset);
@@ -196,13 +162,13 @@ module.exports = {
     });
 
     this.polls = tools.getPolls(
-      this.channels.filter((item) => item.r),
+      this.channels.filter(item => item.r),
       this.params
     );
     this.plugin.log(`Polls = ${util.inspect(this.polls)}`, 2);
 
-    this.queue = tools.getPollArray(this.polls);
-
+    this.queue = tools.getPollArray(this.polls); // Очередь опроса -на чтение
+    this.qToWrite = []; // Очередь на запись - имеет более высокий приоритет
     this.sendTime = 0;
   },
 
@@ -211,37 +177,37 @@ module.exports = {
 
     try {
       switch (this.params.transport) {
-        case "tcp":
+        case 'tcp':
           this.plugin.log(`Connecting options = ${util.inspect(options)}`, 1);
           await this.client.connectTCP(this.params.host, options);
 
           break;
-        case "rtutcp":
+        case 'rtutcp':
           await this.client.connectTcpRTUBuffered(this.params.host, options);
 
           break;
-        case "rtuOverTcp":
+        case 'rtuOverTcp':
           await this.client.connectTelnet(this.params.host, options);
 
           break;
-        case "rtu":
+        case 'rtu':
           options = {
             baudRate: +this.params.baudRate,
             parity: this.params.parity,
             dataBits: this.params.dataBits,
-            stopBits: this.params.stopBits,
+            stopBits: this.params.stopBits
           };
 
           this.plugin.log(`Connecting options = ${util.inspect(options)}`, 1);
           await this.client.connectRTUBuffered(this.params.serialport, options);
 
           break;
-        case "ascii":
+        case 'ascii':
           options = {
             baudRate: +this.params.baudRate,
             parity: this.params.parity,
             dataBits: this.params.dataBits,
-            stopBits: this.params.stopBits,
+            stopBits: this.params.stopBits
           };
 
           this.plugin.log(`Connecting options = ${util.inspect(options)}`, 1);
@@ -249,14 +215,10 @@ module.exports = {
 
           break;
         default:
-          throw new Error(
-            `Протокол ${this.params.transport} еще не имплементирован`
-          );
+          throw new Error(`Протокол ${this.params.transport} еще не имплементирован`);
       }
     } catch (err) {
-      let charr = this.channels.map((item)=>{
-        return {id: item.id, chstatus: 1, title:item.title}
-      });
+      let charr = this.channels.map(item => ({ id: item.id, chstatus: 1, title: item.title }));
       this.plugin.sendData(charr);
       this.checkError(err);
       this.plugin.log(`Connection fail! EXIT`, 1);
@@ -269,10 +231,8 @@ module.exports = {
     if (Date.now() - this.sendTime > this.params.timeout) {
       if (this.waiting) {
         let adr = Number(this.waiting.substr(0, 2));
-        this.plugin.sendData(
-          tools.deviceError(adr, "Timeout error! No response")
-        );
-        this.waiting = "";
+        this.plugin.sendData(tools.deviceError(adr, 'Timeout error! No response'));
+        this.waiting = '';
       }
 
       await this.sendNext();
@@ -282,23 +242,18 @@ module.exports = {
   async read(item, allowSendNext) {
     this.client.setID(item.unitid);
     this.plugin.log(
-      `READ: unitId = ${item.unitid}, FC = ${
-        item.fcr
-      }, address = ${this.showAddress(item.address)}, length = ${item.length}`,
+      `READ: unitId = ${item.unitid}, FC = ${item.fcr}, address = ${this.showAddress(item.address)}, length = ${
+        item.length
+      }`,
       1
     );
-  
+
     try {
-      let res = await this.modbusReadCommand(
-        item.fcr,
-        item.address,
-        item.length,
-        item.ref
-      );
+      let res = await this.modbusReadCommand(item.fcr, item.address, item.length, item.ref);
       if (res && res.buffer) {
         if (this.params.sendChanges == 1) {
           let data = tools.getDataFromResponse(res.buffer, item.ref);
-          let arr = data.filter((item) => {
+          let arr = data.filter(item => {
             if (this.channelsData[item.id] != item.value) {
               this.channelsData[item.id] = item.value;
               return true;
@@ -313,7 +268,6 @@ module.exports = {
       }
     } catch (err) {
       this.checkError(err);
-      
     }
 
     if (allowSendNext !== undefined && allowSendNext === true) {
@@ -328,23 +282,18 @@ module.exports = {
   async readValueCommand(item) {
     this.client.setID(item.unitid);
     this.plugin.log(
-      `READ: unitId = ${item.unitid}, FC = ${
-        item.fcr
-      }, address = ${this.showAddress(item.address)}, length = ${item.length}`,
+      `READ: unitId = ${item.unitid}, FC = ${item.fcr}, address = ${this.showAddress(item.address)}, length = ${
+        item.length
+      }`,
       1
     );
 
     try {
-      let res = await this.modbusReadCommand(
-        item.fcr,
-        item.address,
-        item.length,
-        item.ref
-      );
+      let res = await this.modbusReadCommand(item.fcr, item.address, item.length, item.ref);
 
       return tools.parseBufferRead(res.buffer, {
         widx: item.offset,
-        vartype: item.vartype,
+        vartype: item.vartype
       });
     } catch (err) {
       this.checkError(err);
@@ -368,41 +317,35 @@ module.exports = {
           throw new Error(`Функция ${fcr} на чтение не поддерживается`);
       }
     } catch (err) {
-      let charr = ref.map((item)=>{
-        return {id: item.id, chstatus: 1, title:item.title}
-      });
+      let charr = ref.map(item => ({ id: item.id, chstatus: 1, title: item.title }));
       this.plugin.sendData(charr);
       this.checkError(err);
     }
   },
 
   async write(item, allowSendNext) {
-    console.log("WRITE START item=" + util.inspect(item));
+    console.log('WRITE START item=' + util.inspect(item));
     this.client.setID(parseInt(item.unitid));
-    let fcw = item.vartype == "bool" ? 5 : 6;
+    let fcw = item.vartype == 'bool' ? 5 : 6;
     let val = item.value;
     if (fcw == 6) {
-      console.log("WRITE BEFORE tools val =" + util.inspect(val));
+      console.log('WRITE BEFORE tools val =' + util.inspect(val));
       val = tools.writeValue(item.value, item);
 
-      console.log("WRITE tools val =" + util.inspect(val));
+      console.log('WRITE tools val =' + util.inspect(val));
       if (Buffer.isBuffer(val) && val.length > 2) fcw = 16;
     }
 
     this.plugin.log(
-      `WRITE: unitId = ${
-        item.unitid
-      }, FC = ${fcw}, address = ${this.showAddress(
-        item.address
-      )}, value = ${util.inspect(val)}`,
+      `WRITE: unitId = ${item.unitid}, FC = ${fcw}, address = ${this.showAddress(item.address)}, value = ${util.inspect(
+        val
+      )}`,
       1
     );
     console.log(
-      `WRITE: unitId = ${
-        item.unitid
-      }, FC = ${fcw}, address = ${this.showAddress(
-        item.address
-      )}, value = ${util.inspect(val)}`
+      `WRITE: unitId = ${item.unitid}, FC = ${fcw}, address = ${this.showAddress(item.address)}, value = ${util.inspect(
+        val
+      )}`
     );
 
     // Результат на запись - принять!!
@@ -423,7 +366,7 @@ module.exports = {
     }
 
     if (allowSendNext !== undefined && allowSendNext === true) {
-      await sleep(this.plugin.polldelay || 1); // Интервал между запросами
+      await sleep(this.params.polldelay || 1); // Интервал между запросами
       setImmediate(() => {
         this.sendNext();
       });
@@ -432,7 +375,7 @@ module.exports = {
 
   async writeValueCommand(item) {
     this.client.setID(item.unitid);
-    let fcw = item.vartype == "bool" ? 5 : 6;
+    let fcw = item.vartype == 'bool' ? 5 : 6;
     let val = item.value;
     if (fcw == 6) {
       val = tools.writeValue(item.value, item);
@@ -440,18 +383,14 @@ module.exports = {
     }
 
     this.plugin.log(
-      `WRITE: unitId = ${
-        item.unitid
-      }, FC = ${fcw}, address = ${this.showAddress(
-        item.address
-      )}, value = ${util.inspect(val)}`,
+      `WRITE: unitId = ${item.unitid}, FC = ${fcw}, address = ${this.showAddress(item.address)}, value = ${util.inspect(
+        val
+      )}`,
       1
     );
 
     console.log(
-      `writeValueCommand: unitId = ${
-        item.unitid
-      }, FC = ${fcw}, address = ${this.showAddress(
+      `writeValueCommand: unitId = ${item.unitid}, FC = ${fcw}, address = ${this.showAddress(
         item.address
       )}, value = ${util.inspect(val)}`
     );
@@ -476,28 +415,19 @@ module.exports = {
     try {
       switch (fcw) {
         case 5:
-          this.plugin.log(
-            `writeCoil: address = ${this.showAddress(
-              address
-            )}, value = ${value}`,
-            1
-          );
+          this.plugin.log(`writeCoil: address = ${this.showAddress(address)}, value = ${value}`, 1);
           return await this.client.writeCoil(address, value);
 
         case 6:
           this.plugin.log(
-            `writeSingleRegister: address = ${this.showAddress(
-              address
-            )}, value = ${util.inspect(value)}`,
+            `writeSingleRegister: address = ${this.showAddress(address)}, value = ${util.inspect(value)}`,
             1
           );
           return await this.client.writeRegister(address, value);
 
         case 16:
           this.plugin.log(
-            `writeMultipleRegisters: address = ${this.showAddress(
-              address
-            )}, value = ${util.inspect(value)}`,
+            `writeMultipleRegisters: address = ${this.showAddress(address)}, value = ${util.inspect(value)}`,
             1
           );
           return await this.client.writeRegisters(address, value);
@@ -510,6 +440,37 @@ module.exports = {
     }
   },
 
+  async sendNext(single) {
+    if (this.params.transport != 'tcp' && !this.client.isOpen) {
+      this.plugin.log('Port is not open! TRY RECONNECT');
+      await this.connect();
+    }
+
+    let isOnce = false;
+    if (typeof single !== undefined && single === true) {
+      isOnce = true;
+    }
+
+    let item;
+    if (this.qToWrite.length) {
+      item = this.qToWrite.shift();
+      this.plugin.log(`sendNext WRITE item = ${util.inspect(item)}`, 2);
+      return this.write(item, !isOnce);
+    }
+
+    if (this.queue.length <= 0) {
+      this.queue = tools.getPollArray(this.polls);
+    }
+
+    item = this.queue.shift();
+    if (typeof item !== 'object') {
+      item = this.polls[item];
+    }
+    this.plugin.log(`sendNext item = ${util.inspect(item)}`, 2);
+    return this.read(item, !isOnce);
+  },
+
+  /*
   async sendNext(single) {
     if (this.queue.length <= 0) {
       this.queue = tools.getPollArray(this.polls);
@@ -540,18 +501,19 @@ module.exports = {
       await this.read(item, !isOnce);
     }
   },
+  */
 
   checkError(e) {
     if (e.errno && networkErrors.includes(e.errno)) {
-      this.plugin.log("Network ERROR: " + e.errno, 0);
-      console.log("Network ERROR: " + e.errno);
+      this.plugin.log('Network ERROR: ' + e.errno, 0);
+      console.log('Network ERROR: ' + e.errno);
     } else {
-      this.plugin.log("ERROR: " + util.inspect(e), 0);
-      console.log("ERROR: " + util.inspect(e));
+      this.plugin.log('ERROR: ' + util.inspect(e), 0);
+      console.log('ERROR: ' + util.inspect(e));
     }
 
     // TODO - проверить ошибку и не всегда выходить
-    if (this.params.transport == "tcp") {
+    if (this.params.transport == 'tcp') {
       this.terminatePlugin();
       process.exit(1);
     }
@@ -560,19 +522,19 @@ module.exports = {
   getVartype(vt) {
     let bits = vt.substr(-2, 2);
 
-    if (vt === "int8" || vt === "uint8") {
+    if (vt === 'int8' || vt === 'uint8') {
       return vt + this.params.bo8;
     }
 
-    if (bits === "16") {
+    if (bits === '16') {
       return vt + this.params.bo16;
     }
 
-    if (bits === "32" || vt === "float") {
+    if (bits === '32' || vt === 'float') {
       return vt + this.params.bo32;
     }
 
-    if (bits === "64" || vt === "double") {
+    if (bits === '64' || vt === 'double') {
       return vt + this.params.bo64;
     }
 
@@ -581,8 +543,8 @@ module.exports = {
 
   showAddress(address) {
     if (isNaN(address)) {
-      return "NaN";
+      return 'NaN';
     }
     return `${address} (0x${Number(address).toString(16)})`;
-  },
+  }
 };
