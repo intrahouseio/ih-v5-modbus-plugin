@@ -44,7 +44,6 @@ module.exports = {
   },
 
   terminatePlugin() {
-    console.log('TERMINATE PLUGIN');
     if (this.client) {
       this.client.close();
     }
@@ -56,7 +55,7 @@ module.exports = {
         const item = this.formWriteObject(aitem);
         if (item) {
           this.qToWrite.push(item);
-          this.plugin.log(`Command to send: ${util.inspect(this.qToWrite)}`, 2);
+          this.plugin.log(`Command to write: ${util.inspect(this.qToWrite)}`, 2);
         }
       });
     } catch (err) {
@@ -74,7 +73,7 @@ module.exports = {
       command: chanItem.value || 'set'
     };
 
-    if (chanItem.diffw) {
+    if (chanItem.diffw || !chanItem.r) {
       res.address = parseInt(chanItem.waddress);
       res.vartype = chanItem.wvartype;
       res.force = 0;
@@ -142,9 +141,8 @@ module.exports = {
       await this.sendNext(true);
     }
 
-    this.plugin.log(`Requested channels update. Get channels: ${getChannels ? 'yes' : 'no'}`);
-
     if (getChannels === true) {
+      this.plugin.log('Request updated channels');
       this.channels = await this.plugin.channels.get();
     }
 
@@ -264,7 +262,7 @@ module.exports = {
           this.plugin.sendData(tools.getDataFromResponse(res.buffer, item.ref));
         }
 
-        this.plugin.log(res.buffer, 2);
+        // this.plugin.log(res.buffer, 2);
       }
     } catch (err) {
       this.checkError(err);
@@ -324,15 +322,11 @@ module.exports = {
   },
 
   async write(item, allowSendNext) {
-    console.log('WRITE START item=' + util.inspect(item));
     this.client.setID(parseInt(item.unitid));
     let fcw = item.vartype == 'bool' ? 5 : 6;
     let val = item.value;
     if (fcw == 6) {
-      console.log('WRITE BEFORE tools val =' + util.inspect(val));
       val = tools.writeValue(item.value, item);
-
-      console.log('WRITE tools val =' + util.inspect(val));
       if (Buffer.isBuffer(val) && val.length > 2) fcw = 16;
     }
 
@@ -342,11 +336,6 @@ module.exports = {
       )}`,
       1
     );
-    console.log(
-      `WRITE: unitId = ${item.unitid}, FC = ${fcw}, address = ${this.showAddress(item.address)}, value = ${util.inspect(
-        val
-      )}`
-    );
 
     // Результат на запись - принять!!
     try {
@@ -354,7 +343,6 @@ module.exports = {
 
       // Получили ответ при записи
       this.plugin.log(`Write result: ${util.inspect(res)}`, 1);
-      console.log(`Write result: ${util.inspect(res)}`);
 
       if (item.force) {
         // Только если адрес для чтения и записи одинаковый
@@ -389,18 +377,11 @@ module.exports = {
       1
     );
 
-    console.log(
-      `writeValueCommand: unitId = ${item.unitid}, FC = ${fcw}, address = ${this.showAddress(
-        item.address
-      )}, value = ${util.inspect(val)}`
-    );
-
     try {
       // let val = tools.writeValue(item.value, item);
 
       let res = await this.modbusWriteCommand(fcw, item.address, val);
       this.plugin.log(`Write result: ${util.inspect(res)}`, 1);
-      console.log(`Write result: ${util.inspect(res)}`);
       if (item.force) {
         this.plugin.sendData([{ id: item.id, value: item.value }]);
       }
@@ -454,7 +435,7 @@ module.exports = {
     let item;
     if (this.qToWrite.length) {
       item = this.qToWrite.shift();
-      this.plugin.log(`sendNext WRITE item = ${util.inspect(item)}`, 2);
+      this.plugin.log(`sendNext: WRITE item = ${util.inspect(item)}`, 2);
       return this.write(item, !isOnce);
     }
 
@@ -466,50 +447,15 @@ module.exports = {
     if (typeof item !== 'object') {
       item = this.polls[item];
     }
-    this.plugin.log(`sendNext item = ${util.inspect(item)}`, 2);
+    // this.plugin.log(`sendNext item = ${util.inspect(item)}`, 2);
     return this.read(item, !isOnce);
   },
-
-  /*
-  async sendNext(single) {
-    if (this.queue.length <= 0) {
-      this.queue = tools.getPollArray(this.polls);
-    }
-
-    let item = this.queue.shift();
-
-    if (typeof item !== "object") {
-      item = this.polls[item];
-    }
-
-    this.plugin.log(`sendNext item = ${util.inspect(item)}`, 2);
-
-    let isOnce = false;
-
-    if (typeof single !== undefined && single === true) {
-      isOnce = true;
-    }
-
-    if (this.params.transport != "tcp" && !this.client.isOpen) {
-      this.plugin.log("Port is not open! TRY RECONNECT");
-      await this.connect();
-    }
-
-    if (item.command) {
-      await this.write(item, !isOnce);
-    } else {
-      await this.read(item, !isOnce);
-    }
-  },
-  */
 
   checkError(e) {
     if (e.errno && networkErrors.includes(e.errno)) {
       this.plugin.log('Network ERROR: ' + e.errno, 0);
-      console.log('Network ERROR: ' + e.errno);
     } else {
       this.plugin.log('ERROR: ' + util.inspect(e), 0);
-      console.log('ERROR: ' + util.inspect(e));
     }
 
     // TODO - проверить ошибку и не всегда выходить
