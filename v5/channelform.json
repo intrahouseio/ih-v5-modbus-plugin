@@ -10,7 +10,7 @@
     { "id": "p1", "xs": 4, "class": "main", "table": "devhard" },
     { "id": "prw", "xs": 4, "class": "main", "table": "devhard" },
 
-    { "id": "p2", "xs": 8, "class": "main", "table": "devhard", "hide": "!data.prw.r" },
+    { "id": "p2", "xs": 8, "class": "main", "table": "devhard" },
     { "id": "p3", "xs": 4, "class": "main", "table": "devhard", "hide": "!data.prw.r" },
 
     { "id": "p8", "xs": 8, "class": "main", "table": "devhard", "hide": "!data.prw.r" },
@@ -145,15 +145,15 @@
           "hide": "data.p2.vartype.id == 'bool'"
         }
       ],
-
+      "hide": "!data.prw.r",
       "default": "3"
     },
-    { "prop": "bit", "title": "Извлечь битовое значение", "type": "cb", "hide": "data.p2.vartype.id == 'bool'" },
+    { "prop": "bit", "title": "Извлечь битовое значение", "type": "cb", "hide": "!data.prw.r || data.p2.vartype.id == 'bool'" },
     {
       "prop": "offset",
       "title": "Смещение (0-15)",
       "type": "number",
-      "hide": "!data.p2.bit || data.p2.vartype.id == 'bool'",
+      "hide": "!data.prw.r || !data.p2.bit || data.p2.vartype.id == 'bool'",
       "default": 0
     }
   ],
@@ -202,13 +202,13 @@
 
   "p4": [
    
-    { "prop": "diffw", "title": "Для записи использовать другой адрес", "type": "cb", "hide": "!data.prw.r" },
+    { "prop": "diffw", "title": "Для записи использовать другой адрес", "type": "cb"},
     {
       "prop": "waddress",
       "title": "$address",
       "type": "input",
       "default": "0x0000",
-      "hide": "data.prw.r && !data.p4.diffw"
+      "hide": "!data.p4.diffw"
     },
     {
       "prop": "wvartype",
@@ -270,7 +270,7 @@
           "title": "DOUBLE, 8 байт"
         }
       ],
-      "hide": "data.prw.r && !data.p4.diffw",
+      "hide": "!data.p4.diffw",
       "default": "int16"
     },
     { "prop": "calc_out", "title": "$Devhard_Calc_Out", "type": "input" }

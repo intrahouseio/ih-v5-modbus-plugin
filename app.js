@@ -73,7 +73,7 @@ module.exports = {
       command: chanItem.value || 'set'
     };
 
-    if (chanItem.diffw || !chanItem.r) {
+    if (chanItem.diffw || (!chanItem.r && chanItem.wvartype && chanItem.wvartype)) {
       res.address = parseInt(chanItem.waddress);
       res.vartype = chanItem.wvartype;
       res.force = 0;
