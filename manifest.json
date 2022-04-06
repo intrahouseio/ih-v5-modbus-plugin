@@ -5,6 +5,7 @@
   "restartOnChannelsChange": 0,
 
   "innerId":1,
+  "hasTryStartState":1,
 
   "share_node_folder_fields":["parentoffset", "unitid"],
   

@@ -36,10 +36,20 @@ module.exports = {
 
       await this.connect();
       this.plugin.log(`Connected to ${connectionStr}`);
+      this.setWorking();
 
       await this.sendNext();
     } catch (err) {
       this.checkError(err);
+    }
+  },
+
+  setWorking() {
+    // Если запускается со старой версией сервера - функции может не быть
+    try {
+      this.plugin.sendWorkingState();
+    } catch (e) {
+      this.plugin.log('Failed "plugin.sendWorkingState". System update required.');
     }
   },
 
