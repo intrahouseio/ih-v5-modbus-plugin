@@ -20,7 +20,7 @@
       "default": 1
     },
 
-    { "prop": "parentoffset", "title": "Смещение", "type": "input", "default": 0 }
+    { "prop": "parentoffset", "title": "$offset", "type": "input", "default": 0 }
   ],
 
   "p3": [{ "prop": "txt", "title": "$Comment", "type": "textarea" }]

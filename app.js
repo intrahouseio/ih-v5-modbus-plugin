@@ -88,7 +88,7 @@ module.exports = {
       this.plugin.log('ERROR: Command has empty vartype: ' + util.inspect(chanItem));
       return;
     }
-    res.vartype = this.getVartype(res.vartype);
+    res.vartype = res.manbo ? this.getVartypeMan(res) : this.getVartype(res.vartype);
 
     if (chanItem.usek) {
       res.usek = 1;
@@ -156,7 +156,7 @@ module.exports = {
       item.unitid = parseInt(item.unitid);
       item.address = parseInt(item.address);
       if (item.parentoffset) item.address += parseInt(item.parentoffset);
-      item.vartype = this.getVartype(item.vartype);
+      item.vartype = item.manbo ? this.getVartypeMan(item) : this.getVartype(item.vartype);
     });
 
     this.polls = tools.getPolls(
@@ -440,15 +440,31 @@ module.exports = {
     }
 
     if (this.queue.length <= 0) {
+      this.polls.forEach(item => {
+        if (item.curpoll < item.polltimefctr) {
+          item.curpoll ++;
+        } else {
+          item.curpoll = 1;
+        }
+      })
       this.queue = tools.getPollArray(this.polls);
     }
-
+    //this.plugin.log(`Queue = ${util.inspect(this.queue)}`, 2);
     item = this.queue.shift();
-    if (typeof item !== 'object') {
+    if (typeof item !== 'object') { 
       item = this.polls[item];
+      
     }
-    // this.plugin.log(`sendNext item = ${util.inspect(item)}`, 2);
-    return this.read(item, !isOnce);
+    //this.plugin.log(`sendNext item = ${util.inspect(item)}`, 2);
+    if (item) {
+      return this.read(item, !isOnce);
+    } else {
+      await sleep(this.params.polldelay || 1);
+      setImmediate(() => {
+        this.sendNext();
+      });
+    }
+    
   },
 
   checkError(e) {
@@ -482,6 +498,29 @@ module.exports = {
 
     if (bits === '64' || vt === 'double') {
       return vt + this.params.bo64;
+    }
+
+    return vt;
+  },
+
+  getVartypeMan(item) {
+    let vt = item.vartype;
+    let bits = vt.substr(-2, 2);
+
+    if (vt === 'int8' || vt === 'uint8') {
+      return vt + item.manbo8;
+    }
+
+    if (bits === '16') {
+      return vt + item.manbo16;
+    }
+
+    if (bits === '32' || vt === 'float') {
+      return vt + item.manbo32;
+    }
+
+    if (bits === '64' || vt === 'double') {
+      return vt + item.manbo64;
     }
 
     return vt;

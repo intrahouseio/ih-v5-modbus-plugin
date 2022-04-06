@@ -175,7 +175,7 @@
     },
     {
       "prop": "showbyteorder",
-      "title": "Настроить порядок байт",
+      "title": "$showbyteorder",
       "type": "cb"
     },
     {
@@ -193,11 +193,11 @@
       "default": 5
     },
     { "prop": "loglevel", "title": "$LogLevel", "type": "droplist", "data": "loglevelList" },
-    { "prop": "restartOnSchedule", "title": "Перезагружать плагин по расписанию ", "type": "cb" },
+    { "prop": "restartOnSchedule", "title": "$restartOnSchedule", "type": "cb" },
    
     {
       "prop": "par2_OnSchedule",
-      "title": "Правило cron",
+      "title": "$par2_OnSchedule",
       "type": "input",
       "hide": "!data.p3.restartOnSchedule",
       "default":"* * * * *"
@@ -286,12 +286,12 @@
       "prop": "unitsTreeTable",
 
       "columns": [
-        { "prop": "name", "title": "ID", "type": "text", "width": 150 },
-        { "prop": "state", "title": "Состояние", "type": "text", "width": 150 },
-        { "prop": "laststart", "title": "Время запуска", "type": "text", "width": 150 },
-        { "prop": "laststop", "title": "Время останова", "type": "text", "width": 150 },
-        { "prop": "uptime", "title": "Uptime", "type": "text", "width": 150 },
-        { "prop": "error", "title": "Ошибка", "type": "text", "width": 250 }
+        { "prop": "name", "title": "$name", "type": "text", "width": 150 },
+        { "prop": "state", "title": "$state", "type": "text", "width": 150 },
+        { "prop": "laststart", "title": "$laststart", "type": "text", "width": 150 },
+        { "prop": "laststop", "title": "$laststop", "type": "text", "width": 150 },
+        { "prop": "uptime", "title": "$uptime", "type": "text", "width": 150 },
+        { "prop": "error", "title": "$error", "type": "text", "width": 250 }
       ]
     }
   ]

@@ -52,6 +52,8 @@ function getPolls(channels, params) {
         desc: item.desc,
         fcr: item.fcr,
         address: item.address,
+        polltimefctr: item.polltimefctr || 1,
+        curpoll: 1,
         ref: []
       };
     }
@@ -83,7 +85,7 @@ function getPolls(channels, params) {
 
   //Добавить ручную группировку чтения
   const configMan = channels.filter(item => item.gr && item.grman && item.r);
-  configMan.sort(byorder('unitid,grmanstr,address'));
+  configMan.sort(byorder('unitid,grmanstr,address,polltimefctr'));
   configMan.forEach(item => {
     if (!currentMan || isDiffBlockMan(item) || getLengthManAfterAdd(item) > maxReadLen) {
       // Записать предыдущий элемент
@@ -98,6 +100,8 @@ function getPolls(channels, params) {
         fcr: item.fcr,
         address: item.address,
         grmanstr: item.grmanstr,
+        polltimefctr: item.polltimefctr || 1,
+        curpoll: 1,
         ref: []
       };
     }
@@ -111,6 +115,16 @@ function getPolls(channels, params) {
   if (currentMan && lengthMan) {
     result.push(Object.assign({ length: lengthMan }, currentMan));
   }
+
+  // Результат должен быть такой:
+  /*
+    return [
+        {unitid:1, desc:'AI', address: 4000, length:4, fcr:'4', grmanstr: 'group1', polltimefctr: 1 ref:
+             [{id:'ch1', widx:0, vartype:'int16'},
+              {id:'ch2', widx:1, vartype:'int16'}]
+        }    
+    ];
+    */
   
   // Добавить негрупповое чтение
   channels
@@ -125,6 +139,8 @@ function getPolls(channels, params) {
           desc: item.desc,
           fcr: item.fcr,
           address: item.address,
+          polltimefctr: item.polltimefctr || 1,
+          curpoll: 1,
           ref: [getRefobj(item)]
         });
       }
@@ -184,7 +200,10 @@ function getRefobj(item) {
 function getPollArray(polls) {
   // Пока просто заполяем индексы всех записей
   // Нужно будет отсекать с низким приоритетом позднее
-  return polls.map((item, index) => index);
+  return polls.reduce((arr, item, index) => {
+    if (item.curpoll == item.polltimefctr) arr.push(index);
+    return arr;
+  }, []);
 }
 
 function parseBufferRead(buffer, item) {

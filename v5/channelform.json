@@ -24,9 +24,9 @@
 
   "pnode": [
     { "prop": "foldertype", "title": "foldertype", "type": "text", "hide": "1==1" },
-    { "prop": "parentname", "title": "Узел", "type": "text" },
+    { "prop": "parentname", "title": "$parentname", "type": "text" },
     { "prop": "parentunitid", "title": "$unitid", "type": "text" },
-    { "prop": "parentoffset", "title": "Смещение", "type": "text" }
+    { "prop": "parentoffset", "title": "$offset", "type": "text" }
   ],
 
   "p1": [
@@ -38,7 +38,7 @@
       "hide": "data.pnode.foldertype == 'node'"
     },
     { "prop": "chan", "title": "$Channel", "type": "input" },
-    { "prop": "devpropname", "title": "Свойство для привязки", "type": "input" }
+    { "prop": "devpropname", "title": "$devpropname", "type": "input" }
   ],
 
   "prw": [
@@ -117,7 +117,83 @@
 
       "default": "int16"
     },
-
+    { "prop": "manbo", "title": "$manbo", "type": "cb" },
+    {
+      "prop": "manbo8",
+      "title": "$bo8",
+      "type": "droplist",
+      "data": [
+        {
+          "id": "be",
+          "title": "Big-Endian, В0 => B0"
+        },
+        {
+          "id": "le",
+          "title": "Little-Endian, В0 => 0B"
+        }
+      ],
+      "default": "be",
+      "hide": "!data.p2.manbo || (data.p2.vartype.id !== 'uint8' && data.p2.vartype.id !== 'int8')"
+    },
+    {
+      "prop": "manbo16",
+      "title": "$bo16",
+      "type": "droplist",
+      "data": [
+        {
+          "id": "be",
+          "title": "Big-Endian, В1B2 => B1B2"
+        },
+        {
+          "id": "le",
+          "title": "Little-Endian, В1B2 => B2B1"
+        }
+      ],
+      "default": "be",
+      "hide": "!data.p2.manbo || (data.p2.vartype.id !== 'uint16' && data.p2.vartype.id !== 'int16')"
+    },
+    {
+      "prop": "manbo32",
+      "title": "$bo32",
+      "type": "droplist",
+      "data": [
+        {
+          "id": "be",
+          "title": "Big-Endian, B1B2B3B4 => B1B2B3B4"
+        },
+        {
+          "id": "sw",
+          "title": "Big-Endian, swap B1B2B3B4 => B3B4B1B2"
+        },
+        {
+          "id": "le",
+          "title": "Little-Endian, B1B2B3B4 => B4B3B2B1"
+        },
+        {
+          "id": "sb",
+          "title": "Little-Endian, swap B1B2B3B4 => B2B1B4B3"
+        }
+      ],
+      "default": "sw",
+      "hide": "!data.p2.manbo || (data.p2.vartype.id !== 'uint32' && data.p2.vartype.id !== 'int32' && data.p2.vartype.id !== 'float')"
+    },
+    {
+      "prop": "manbo64",
+      "title": "$bo64",
+      "type": "droplist",
+      "data": [
+        {
+          "id": "be",
+          "title": "Big-Endian, B1B2B3B4B5B6B7B8 => B1B2B3B4B5B6B7B8"
+        },
+        {
+          "id": "le",
+          "title": "Little-Endian, B1B2B3B4B5B6B7B8 => B8B7B6B5B4B3B2B1"
+        }
+      ],
+      "default": "be",
+      "hide": "!data.p2.manbo || (data.p2.vartype.id !== 'uint64' && data.p2.vartype.id !== 'int64' && data.p2.vartype.id !== 'double')"
+    },
     {
       "prop": "fcr",
       "title": "$fcr",
@@ -148,10 +224,10 @@
       "hide": "!data.prw.r",
       "default": "3"
     },
-    { "prop": "bit", "title": "Извлечь битовое значение", "type": "cb", "hide": "!data.prw.r || data.p2.vartype.id == 'bool'" },
+    { "prop": "bit", "title": "$bit", "type": "cb", "hide": "!data.prw.r || data.p2.vartype.id == 'bool'" },
     {
       "prop": "offset",
-      "title": "Смещение (0-15)",
+      "title": "$offset",
       "type": "number",
       "hide": "!data.prw.r || !data.p2.bit || data.p2.vartype.id == 'bool'",
       "default": 0
@@ -161,7 +237,8 @@
   "p3": [
     { "prop": "gr", "title": "$gr", "type": "cb", "default": 1 },
     { "prop": "grman", "title": "$grman", "type": "cb", "hide": "!data.p3.gr", "default": 0 },
-    { "prop": "grmanstr", "title": "$grmanstr", "type": "input", "hide": "!data.p3.grman", "default": "" }
+    { "prop": "grmanstr", "title": "$grmanstr", "type": "input", "hide": "!data.p3.grman", "default": "" },
+    { "prop": "polltimefctr", "title": "$polltimefctr", "type": "input", "hide": "!data.p3.grman", "default": 1 }
   ],
 
   "p8": [
@@ -202,7 +279,7 @@
 
   "p4": [
    
-    { "prop": "diffw", "title": "Для записи использовать другой адрес", "type": "cb"},
+    { "prop": "diffw", "title": "$diffw", "type": "cb"},
     {
       "prop": "waddress",
       "title": "$address",
@@ -222,52 +299,52 @@
 
         {
           "id": "int8",
-          "title": "INT8, 1 байт"
+          "title": "INT8, 1 byte"
         },
 
         {
           "id": "uint8",
-          "title": "UINT8, 1 байт"
+          "title": "UINT8, 1 byte"
         },
 
         {
           "id": "int16",
-          "title": "INT16, 2 байта"
+          "title": "INT16, 2 bytes"
         },
 
         {
           "id": "uint16",
-          "title": "UINT16, 2 байта"
+          "title": "UINT16, 2 bytes"
         },
 
         {
           "id": "int32",
-          "title": "INT32, 4 байта"
+          "title": "INT32, 4 bytes"
         },
 
         {
           "id": "uint32",
-          "title": "UINT32, 4 байта"
+          "title": "UINT32, 4 bytes"
         },
 
         {
           "id": "int64",
-          "title": "INT64, 8 байт"
+          "title": "INT64, 8 bytes"
         },
 
         {
           "id": "uint64",
-          "title": "UINT64, 8 байт"
+          "title": "UINT64, 8 bytes"
         },
 
         {
           "id": "float",
-          "title": "FLOAT, 4 байта"
+          "title": "FLOAT, 4 bytes"
         },
 
         {
           "id": "double",
-          "title": "DOUBLE, 8 байт"
+          "title": "DOUBLE, 8 bytes"
         }
       ],
       "hide": "!data.p4.diffw",
@@ -279,8 +356,8 @@
    
 
   "ptest": [
-    { "prop": "header_testwrite", "title": "Тест записи", "type": "header" },
-    { "prop": "testValue", "title": "Записать значение", "type": "input" },
+    { "prop": "header_testwrite", "title": "$header_testwrite", "type": "header" },
+    { "prop": "testValue", "title": "$testValue", "type": "input" },
 
     {
       "prop": "writeButton",
@@ -305,7 +382,7 @@
   ],
 
   "p9": [
-    { "prop": "realtime_chan_str", "title": "Канал", "type": "text" },
-    { "prop": "realtime_dev_str", "title": "Устройство", "type": "text" }
+    { "prop": "realtime_chan_str", "title": "$realtime_chan_str", "type": "text" },
+    { "prop": "realtime_dev_str", "title": "$realtime_dev_str", "type": "text" }
   ]
 }
