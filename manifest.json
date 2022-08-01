@@ -6,7 +6,8 @@
 
   "innerId":1,
   "hasTryStartState":1,
-
+  "linkChstatus":1,
+  
   "share_node_folder_fields":["parentoffset", "unitid"],
   
   "channel_folder_popup": {
