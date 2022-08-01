@@ -270,27 +270,13 @@ function parseBufferRead(buffer, item) {
       buf[3] = buffer[offset * 2 + 2];
       return buf.readInt32BE(0);
     case 'uint64be':
-      return buffer.readUInt32BE(offset * 2) * 0x100000000 + buffer.readUInt32BE(offset * 2 + 4);
+      return Number(buffer.readBigUInt64BE(offset * 2));
     case 'uint64le':
-      return buffer.readUInt32LE(offset * 2) + buffer.readUInt32LE(offset * 2 + 4) * 0x100000000;
+      return Number(buffer.readBigUInt64LE(offset * 2));
     case 'int64be':
-      i1 = buffer.readInt32BE(offset * 2);
-      i2 = buffer.readUInt32BE(offset * 2 + 4);
-
-      if (i1 >= 0) {
-        return i1 * 0x100000000 + i2; // <<32 does not work
-      }
-      return i1 * 0x100000000 - i2; // I have no solution for that !
-
+      return Number(buffer.readBigInt64BE(offset * 2));
     case 'int64le':
-      i2 = buffer.readUInt32LE(offset * 2);
-      i1 = buffer.readInt32LE(offset * 2 + 4);
-
-      if (i1 >= 0) {
-        return i1 * 0x100000000 + i2; // <<32 does not work
-      }
-      return i1 * 0x100000000 - i2; // I have no solution for that !
-
+      return Number(buffer.readBigInt64LE(offset * 2));
     case 'floatbe':
       return buffer.readFloatBE(offset * 2);
     case 'floatle':
@@ -441,23 +427,19 @@ function parseBufferWrite(value, item) {
       break;
     case 'uint64be':
       buffer = Buffer.alloc(8);
-      buffer.writeUInt32BE(value >> 32, 0);
-      buffer.writeUInt32BE(value & 0xffffffff, 4);
+      buffer.writeBigUInt64BE(BigInt(value), 0);
       break;
     case 'uint64le':
       buffer = Buffer.alloc(8);
-      buffer.writeUInt32LE(value & 0xffffffff, 0);
-      buffer.writeUInt32LE(value >> 32, 4);
+      buffer.writeBigUInt64LE(BigInt(value), 0);
       break;
     case 'int64be':
       buffer = Buffer.alloc(8);
-      buffer.writeInt32BE(value >> 32, 0);
-      buffer.writeUInt32BE(value & 0xffffffff, 4);
+      buffer.writeBigInt64BE(BigInt(value), 0);
       break;
     case 'int64le':
       buffer = Buffer.alloc(8);
-      buffer.writeUInt32LE(value & 0xffffffff, 0);
-      buffer.writeInt32LE(value >> 32, 4);
+      buffer.writeBigInt64LE(BigInt(value), 0);
       break;
     case 'floatbe':
       buffer = Buffer.alloc(4);
