@@ -2,7 +2,8 @@ const util = require('util');
 const tools = require('./tools');
 const Modbus = require('modbus-serial');
 
-const networkErrors = ['ESOCKETTIMEDOUT', 'ETIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'EHOSTUNREACH'];
+//const networkErrors = ['ESOCKETTIMEDOUT', 'ETIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'EHOSTUNREACH'];
+const networkErrors = ['ESOCKETTIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'EHOSTUNREACH'];
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 module.exports = {
@@ -432,7 +433,8 @@ module.exports = {
   },
 
   async sendNext(single) {
-    if (this.params.transport != 'tcp' && !this.client.isOpen) {
+   // if (this.params.transport != 'tcp' && !this.client.isOpen) {
+   if (!this.client.isOpen) {
       this.plugin.log('Port is not open! TRY RECONNECT');
       await this.connect();
     }
@@ -480,15 +482,17 @@ module.exports = {
   checkError(e) {
     if (e.errno && networkErrors.includes(e.errno)) {
       this.plugin.log('Network ERROR: ' + e.errno, 0);
+      this.terminatePlugin();
+      process.exit(1);
     } else {
       this.plugin.log('ERROR: ' + util.inspect(e), 0);
     }
 
     // TODO - проверить ошибку и не всегда выходить
-    if (this.params.transport == 'tcp') {
+    /*if (this.params.transport == 'tcp') {
       this.terminatePlugin();
       process.exit(1);
-    }
+    }*/
   },
 
   getVartype(vt) {

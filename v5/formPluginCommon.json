@@ -170,7 +170,7 @@
     {
       "prop": "maxreadlen",
       "title": "$maxreadlen",
-      "default": 250,
+      "default": 125,
       "type": "number"
     },
     {
