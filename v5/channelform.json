@@ -278,7 +278,6 @@
   ],
 
   "p4": [
-   
     { "prop": "diffw", "title": "$diffw", "type": "cb"},
     {
       "prop": "waddress",
@@ -350,8 +349,35 @@
       "hide": "!data.p4.diffw",
       "default": "int16"
     },
+    {
+      "prop": "fcw",
+      "title": "$fcw",
+      "type": "droplist",
+      "data": [
+        {
+          "id": "5",
+          "title": "FC5 - Write Coil",
+          "hide": "data.p2.vartype.id != 'bool'"
+        },
+
+        {
+          "id": "15",
+          "title": "FC15 - Write Multiple Coils",
+          "hide": "data.p2.vartype.id != 'bool'"
+        },
+        {
+          "id": "6",
+          "title": "FC6 - Write Holding Register",
+          "hide": "data.p2.vartype.id == 'bool'"
+        },
+        {
+          "id": "16",
+          "title": "FC16 - Write Multiple Holding Registers",
+          "hide": "data.p2.vartype.id == 'bool'"
+        }
+      ]
+    },
     { "prop": "calc_out", "title": "$Devhard_Calc_Out", "type": "input" }
-  
   ],
    
 

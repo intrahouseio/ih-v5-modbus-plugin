@@ -87,10 +87,12 @@ module.exports = {
     if (chanItem.diffw || (!chanItem.r && chanItem.wvartype && chanItem.wvartype)) {
       res.address = parseInt(chanItem.waddress);
       res.vartype = chanItem.wvartype;
+      res.fcw = parseInt(chanItem.fcw);
       res.force = 0;
     } else {
       res.address = parseInt(chanItem.address);
       res.vartype = chanItem.vartype;
+      res.fcw = parseInt(chanItem.fcw);
       res.force = chanItem.r ? 1 : 0;
     }
     if (chanItem.parentoffset) res.address += parseInt(chanItem.parentoffset);
@@ -334,9 +336,16 @@ module.exports = {
 
   async write(item, allowSendNext) {
     this.client.setID(parseInt(item.unitid));
-    let fcw = item.vartype == 'bool' ? 5 : 6;
+    let fcw;
+    //let fcw = item.vartype == 'bool' ? 5 : 6;
+    this.plugin.log("WRITE FCW: " + item.fcw);
+    if (item.fcw !== undefined) {
+      fcw = item.fcw;
+    } else {
+      fcw = item.vartype == 'bool' ? 5 : 6;
+    }
     let val = item.value;
-    if (fcw == 6) {
+    if (fcw == 6 || fcw == 16) {
       val = tools.writeValue(item.value, item);
       if (Buffer.isBuffer(val) && val.length > 2) fcw = 16;
     }
@@ -374,9 +383,17 @@ module.exports = {
 
   async writeValueCommand(item) {
     this.client.setID(item.unitid);
-    let fcw = item.vartype == 'bool' ? 5 : 6;
+    let fcw;
+    //let fcw = item.vartype == 'bool' ? 5 : 6;
+    this.plugin.log("WRITE FCW: " + item.fcw);
+    if (item.fcw !== undefined) {
+      fcw = item.fcw;
+    } else {
+      fcw = item.vartype == 'bool' ? 5 : 6;
+    }
+    
     let val = item.value;
-    if (fcw == 6) {
+    if (fcw == 6 || fcw == 16) {
       val = tools.writeValue(item.value, item);
       if (Buffer.isBuffer(val) && val.length > 2) fcw = 16;
     }
@@ -417,6 +434,10 @@ module.exports = {
           );
           return await this.client.writeRegister(address, value);
 
+        case 15:
+            this.plugin.log(`writeCoil: address = ${this.showAddress(address)}, value = ${value}`, 1);
+            return await this.client.writeCoils(address, [value]);
+        
         case 16:
           this.plugin.log(
             `writeMultipleRegisters: address = ${this.showAddress(address)}, value = ${util.inspect(value)}`,
