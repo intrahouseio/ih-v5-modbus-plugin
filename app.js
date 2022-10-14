@@ -76,13 +76,22 @@ module.exports = {
 
   formWriteObject(chanItem) {
     if (!chanItem) return;
+    this.plugin.log("chanItem: " + util.inspect(chanItem));
     // Копировать свойства канала в объект
     const res = {
       id: chanItem.id,
       unitid: chanItem.unitid,
       value: Number(chanItem.value) || 0,
-      command: chanItem.value || 'set'
+      command: chanItem.value || 'set',
+      manbo: chanItem.manbo
     };
+
+    if (chanItem.manbo) {
+      res.manbo8 = chanItem.manbo8;
+      res.manbo16 = chanItem.manbo16;
+      res.manbo32 = chanItem.manbo32;
+      res.manbo64 = chanItem.manbo64;
+    }
 
     if (chanItem.diffw || (!chanItem.r && chanItem.wvartype && chanItem.wvartype)) {
       res.address = parseInt(chanItem.waddress);
@@ -102,7 +111,7 @@ module.exports = {
       return;
     }
     res.vartype = res.manbo ? this.getVartypeMan(res) : this.getVartype(res.vartype);
-
+    
     if (chanItem.usek) {
       res.usek = 1;
       res.ks0 = parseInt(chanItem.ks0);
@@ -281,9 +290,10 @@ module.exports = {
       this.checkError(err);
     }
 
-    if (allowSendNext !== undefined && allowSendNext === true) {
-      await sleep(this.params.polldelay || 1);
-
+    if (this.qToWrite.length || allowSendNext) {
+      if (!this.qToWrite.length) {
+        await sleep(this.params.polldelay || 1); // Интервал между запросами
+      }
       setImmediate(() => {
         this.sendNext();
       });
@@ -373,8 +383,10 @@ module.exports = {
       this.checkError(err);
     }
 
-    if (allowSendNext !== undefined && allowSendNext === true) {
-      await sleep(this.params.polldelay || 1); // Интервал между запросами
+    if (this.qToWrite.length || allowSendNext) {
+      if (!this.qToWrite.length) {
+        await sleep(this.params.polldelay || 1); // Интервал между запросами
+      }
       setImmediate(() => {
         this.sendNext();
       });
