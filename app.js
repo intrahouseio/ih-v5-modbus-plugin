@@ -348,8 +348,8 @@ module.exports = {
     this.client.setID(parseInt(item.unitid));
     let fcw;
     //let fcw = item.vartype == 'bool' ? 5 : 6;
-    this.plugin.log("WRITE FCW: " + item.fcw);
-    if (item.fcw !== undefined) {
+    this.plugin.log("WRITE FCW: " + item.fcw, 1);
+    if (item.fcw) {
       fcw = item.fcw;
     } else {
       fcw = item.vartype == 'bool' ? 5 : 6;
@@ -398,7 +398,7 @@ module.exports = {
     let fcw;
     //let fcw = item.vartype == 'bool' ? 5 : 6;
     this.plugin.log("WRITE FCW: " + item.fcw);
-    if (item.fcw !== undefined) {
+    if (item.fcw) {
       fcw = item.fcw;
     } else {
       fcw = item.vartype == 'bool' ? 5 : 6;
