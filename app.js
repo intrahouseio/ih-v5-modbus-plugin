@@ -36,7 +36,7 @@ module.exports = {
       this.client.setTimeout(this.params.timeout);
 
       await this.connect();
-      this.plugin.log(`Connected to ${connectionStr}`);
+      this.plugin.log(`Connected to ${connectionStr}`, 1);
       this.setWorking();
 
       await this.sendNext();
@@ -50,7 +50,7 @@ module.exports = {
     try {
       this.plugin.sendWorkingState();
     } catch (e) {
-      this.plugin.log('Failed "plugin.sendWorkingState". System update required.');
+      this.plugin.log('Failed "plugin.sendWorkingState". System update required.', 1);
     }
   },
 
@@ -76,7 +76,7 @@ module.exports = {
 
   formWriteObject(chanItem) {
     if (!chanItem) return;
-    this.plugin.log("chanItem: " + util.inspect(chanItem));
+    this.plugin.log("chanItem: " + util.inspect(chanItem), 2);
     // Копировать свойства канала в объект
     const res = {
       id: chanItem.id,
@@ -107,7 +107,7 @@ module.exports = {
     if (chanItem.parentoffset) res.address += parseInt(chanItem.parentoffset);
 
     if (!res.vartype) {
-      this.plugin.log('ERROR: Command has empty vartype: ' + util.inspect(chanItem));
+      this.plugin.log('ERROR: Command has empty vartype: ' + util.inspect(chanItem), 2);
       return;
     }
     res.vartype = res.manbo ? this.getVartypeMan(res) : this.getVartype(res.vartype);
@@ -123,7 +123,7 @@ module.exports = {
   },
 
   async parseCommand(message) {
-    this.plugin.log(`Command '${message.command}' received. Data: ${util.inspect(message)}`);
+    this.plugin.log(`Command '${message.command}' received. Data: ${util.inspect(message)}`, 2);
     let payload = [];
 
     try {
@@ -164,12 +164,12 @@ module.exports = {
     }
 
     if (getChannels === true) {
-      this.plugin.log('Request updated channels');
+      this.plugin.log('Request updated channels', 2);
       this.channels = await this.plugin.channels.get();
     }
 
     if (this.channels.length === 0) {
-      this.plugin.log(`Channels do not exist!`);
+      this.plugin.log(`Channels do not exist!`, 2);
       this.terminatePlugin();
       process.exit(8);
     }
@@ -202,11 +202,18 @@ module.exports = {
           await this.client.connectTCP(this.params.host, options);
 
           break;
+        case 'udp':
+          this.plugin.log(`Connecting options = ${this.params.transport} ${this.params.host} ${util.inspect(options)}`, 1);
+          await this.client.connectUDP(this.params.host, options);
+  
+          break;
         case 'rtutcp':
+          this.plugin.log(`Connecting options = ${util.inspect(options)}`, 1);
           await this.client.connectTcpRTUBuffered(this.params.host, options);
 
           break;
         case 'rtuOverTcp':
+          this.plugin.log(`Connecting options = ${util.inspect(options)}`, 1);
           await this.client.connectTelnet(this.params.host, options);
 
           break;
@@ -348,7 +355,7 @@ module.exports = {
     this.client.setID(parseInt(item.unitid));
     let fcw;
     //let fcw = item.vartype == 'bool' ? 5 : 6;
-    this.plugin.log("WRITE FCW: " + item.fcw, 1);
+    this.plugin.log("WRITE FCW: " + item.fcw, 2);
     if (item.fcw) {
       fcw = item.fcw;
     } else {
@@ -397,7 +404,7 @@ module.exports = {
     this.client.setID(item.unitid);
     let fcw;
     //let fcw = item.vartype == 'bool' ? 5 : 6;
-    this.plugin.log("WRITE FCW: " + item.fcw);
+    this.plugin.log("WRITE FCW: " + item.fcw, 2);
     if (item.fcw) {
       fcw = item.fcw;
     } else {
@@ -468,7 +475,7 @@ module.exports = {
   async sendNext(single) {
    // if (this.params.transport != 'tcp' && !this.client.isOpen) {
    if (!this.client.isOpen) {
-      this.plugin.log('Port is not open! TRY RECONNECT');
+      this.plugin.log('Port is not open! TRY RECONNECT', 1);
       await this.connect();
     }
 
@@ -514,11 +521,11 @@ module.exports = {
 
   checkError(e) {
     if (e.errno && networkErrors.includes(e.errno)) {
-      this.plugin.log('Network ERROR: ' + e.errno, 0);
+      this.plugin.log('Network ERROR: ' + e.errno, 1);
       this.terminatePlugin();
       process.exit(1);
     } else {
-      this.plugin.log('ERROR: ' + util.inspect(e), 0);
+      this.plugin.log('ERROR: ' + util.inspect(e), 1);
     }
 
     // TODO - проверить ошибку и не всегда выходить

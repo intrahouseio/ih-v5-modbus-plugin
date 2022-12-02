@@ -11,6 +11,8 @@
   "breadcrumbs": { "tree": "plugins" },
 
   "p1": [
+    { "prop": "id", "title": "ID", "type": "text" },
+    { "prop": "name", "title": "$Name", "type": "input" },
     {
       "prop": "transport",
       "title": "$transport",
@@ -19,6 +21,10 @@
         {
           "id": "tcp",
           "title": "Modbus TCP"
+        },
+        {
+          "id": "udp",
+          "title": "Modbus UDP"
         },
         {
           "id": "rtu",

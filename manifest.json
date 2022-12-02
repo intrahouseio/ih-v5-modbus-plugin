@@ -9,6 +9,14 @@
   "linkChstatus":1,
   
   "share_node_folder_fields":["parentoffset", "unitid"],
+
+  "validator": {
+    "main": {
+      "host":{"IPv4": true},
+      "maxreadlen": { "min": 1, "max":125 },
+      "port":{"notempty": true}
+    }
+  },
   
   "channel_folder_popup": {
     "add": [
@@ -34,19 +42,23 @@
   },
 
   "default_channel": {
-      "chan": "ch1",
-      "r":1,
-      "desc": "AO",
-      "vartype": "int16",
-      "address": "0x0000",
-      "unitid": 1,
-      "pollp": true,
-      "fcr": "3",
-      "gr": true,
-      "usek": false,
-      "ks0": 0,
-      "ks": 100,
-      "kh0": 0,
-      "kh": 100
+    "chan": "ch1",
+    "r":1,
+    "desc": "AO",
+    "vartype": "int16",
+    "wvartype": "int16",
+    "address": "0x0000",
+    "manbo16": "be",
+    "offset": 0,
+    "unitid": 1,
+    "pollp": true,
+    "fcr": "3",
+    "fcw": "6",
+    "gr": true,
+    "usek": false,
+    "ks0": 0,
+    "ks": 100,
+    "kh0": 0,
+    "kh": 100
   }
 }
