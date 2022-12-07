@@ -202,11 +202,11 @@ module.exports = {
           await this.client.connectTCP(this.params.host, options);
 
           break;
-        case 'udp':
+       /* case 'udp':
           this.plugin.log(`Connecting options = ${this.params.transport} ${this.params.host} ${util.inspect(options)}`, 1);
           await this.client.connectUDP(this.params.host, options);
-  
-          break;
+          await sleep(100)
+          break;*/
         case 'rtutcp':
           this.plugin.log(`Connecting options = ${util.inspect(options)}`, 1);
           await this.client.connectTcpRTUBuffered(this.params.host, options);
