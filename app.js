@@ -4,7 +4,8 @@ const Modbus = require('modbus-serial');
 
 //const networkErrors = ['ESOCKETTIMEDOUT', 'ETIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'EHOSTUNREACH'];
 const networkErrors = ['ESOCKETTIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'EHOSTUNREACH'];
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+let nextTimer = {};
+const sleep = ms => new Promise(resolve => nextTimer = setTimeout(resolve, ms));
 
 module.exports = {
   params: {},
@@ -13,7 +14,7 @@ module.exports = {
 
   async start(plugin) {
     this.plugin = plugin;
-
+    this.params = plugin.params;
     this.plugin.onAct(this.parseAct.bind(this));
     this.plugin.onCommand(async data => this.parseCommand(data));
 
@@ -72,6 +73,8 @@ module.exports = {
     } catch (err) {
       this.checkError(err);
     }
+    clearTimeout(nextTimer);
+    this.sendNext();
   },
 
   formWriteObject(chanItem) {
