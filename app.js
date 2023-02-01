@@ -2,15 +2,16 @@ const util = require('util');
 const tools = require('./tools');
 const Modbus = require('modbus-serial');
 
-//const networkErrors = ['ESOCKETTIMEDOUT', 'ETIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'EHOSTUNREACH'];
+// const networkErrors = ['ESOCKETTIMEDOUT', 'ETIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'EHOSTUNREACH'];
 const networkErrors = ['ESOCKETTIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'EHOSTUNREACH'];
 let nextTimer = {};
-const sleep = ms => new Promise(resolve => nextTimer = setTimeout(resolve, ms));
+const sleep = ms => new Promise(resolve => (nextTimer = setTimeout(resolve, ms)));
 
 module.exports = {
   params: {},
   channels: [],
   channelsData: {},
+  channelsChstatus: {},
 
   async start(plugin) {
     this.plugin = plugin;
@@ -73,13 +74,13 @@ module.exports = {
     } catch (err) {
       this.checkError(err);
     }
-    clearTimeout(nextTimer);
-    this.sendNext();
+    // clearTimeout(nextTimer);
+    // this.sendNext();
   },
 
   formWriteObject(chanItem) {
     if (!chanItem) return;
-    this.plugin.log("chanItem: " + util.inspect(chanItem), 2);
+    this.plugin.log('chanItem: ' + util.inspect(chanItem), 2);
     // Копировать свойства канала в объект
     const res = {
       id: chanItem.id,
@@ -114,7 +115,7 @@ module.exports = {
       return;
     }
     res.vartype = res.manbo ? this.getVartypeMan(res) : this.getVartype(res.vartype);
-    
+
     if (chanItem.usek) {
       res.usek = 1;
       res.ks0 = parseInt(chanItem.ks0);
@@ -205,7 +206,7 @@ module.exports = {
           await this.client.connectTCP(this.params.host, options);
 
           break;
-       /* case 'udp':
+        /* case 'udp':
           this.plugin.log(`Connecting options = ${this.params.transport} ${this.params.host} ${util.inspect(options)}`, 1);
           await this.client.connectUDP(this.params.host, options);
           await sleep(100)
@@ -281,17 +282,21 @@ module.exports = {
     try {
       let res = await this.modbusReadCommand(item.fcr, item.address, item.length, item.ref);
       if (res && res.buffer) {
+        const data = tools.getDataFromResponse(res.buffer, item.ref);
+        data.forEach(el => {
+          this.channelsChstatus[el.id] = el.chstatus;
+        });
+
         if (this.params.sendChanges == 1) {
-          let data = tools.getDataFromResponse(res.buffer, item.ref);
-          let arr = data.filter(item => {
-            if (this.channelsData[item.id] != item.value) {
-              this.channelsData[item.id] = item.value;
+          let arr = data.filter(ditem => {
+            if (this.channelsData[ditem.id] != ditem.value) {
+              this.channelsData[ditem.id] = ditem.value;
               return true;
             }
           });
           if (arr.length > 0) this.plugin.sendData(arr);
         } else {
-          this.plugin.sendData(tools.getDataFromResponse(res.buffer, item.ref));
+          this.plugin.sendData(data);
         }
 
         // this.plugin.log(res.buffer, 2);
@@ -349,6 +354,9 @@ module.exports = {
       }
     } catch (err) {
       let charr = ref.map(item => ({ id: item.id, chstatus: 1, title: item.title }));
+      charr.forEach(el => {
+        this.channelsChstatus[el.id] = 1;
+      });
       this.plugin.sendData(charr);
       this.checkError(err);
     }
@@ -357,8 +365,8 @@ module.exports = {
   async write(item, allowSendNext) {
     this.client.setID(parseInt(item.unitid));
     let fcw;
-    //let fcw = item.vartype == 'bool' ? 5 : 6;
-    this.plugin.log("WRITE FCW: " + item.fcw, 2);
+    // let fcw = item.vartype == 'bool' ? 5 : 6;
+    this.plugin.log('WRITE FCW: ' + item.fcw, 2);
     if (item.fcw) {
       fcw = item.fcw;
     } else {
@@ -406,14 +414,14 @@ module.exports = {
   async writeValueCommand(item) {
     this.client.setID(item.unitid);
     let fcw;
-    //let fcw = item.vartype == 'bool' ? 5 : 6;
-    this.plugin.log("WRITE FCW: " + item.fcw, 2);
+    // let fcw = item.vartype == 'bool' ? 5 : 6;
+    this.plugin.log('WRITE FCW: ' + item.fcw, 2);
     if (item.fcw) {
       fcw = item.fcw;
     } else {
       fcw = item.vartype == 'bool' ? 5 : 6;
     }
-    
+
     let val = item.value;
     if (fcw == 6 || fcw == 16) {
       val = tools.writeValue(item.value, item);
@@ -457,9 +465,9 @@ module.exports = {
           return await this.client.writeRegister(address, value);
 
         case 15:
-            this.plugin.log(`writeCoil: address = ${this.showAddress(address)}, value = ${value}`, 1);
-            return await this.client.writeCoils(address, [value]);
-        
+          this.plugin.log(`writeCoil: address = ${this.showAddress(address)}, value = ${value}`, 1);
+          return await this.client.writeCoils(address, [value]);
+
         case 16:
           this.plugin.log(
             `writeMultipleRegisters: address = ${this.showAddress(address)}, value = ${util.inspect(value)}`,
@@ -476,10 +484,11 @@ module.exports = {
   },
 
   async sendNext(single) {
-   // if (this.params.transport != 'tcp' && !this.client.isOpen) {
-   if (!this.client.isOpen) {
-      this.plugin.log('Port is not open! TRY RECONNECT', 1);
-      await this.connect();
+    // if (this.params.transport != 'tcp' && !this.client.isOpen) {
+    if (!this.client.isOpen) {
+      this.plugin.log('Port not open! TRY RECONNECT', 1);
+      // await this.connect();
+      this.plugin.exit(1, 'Port not open!!!!');
     }
 
     let isOnce = false;
@@ -497,45 +506,47 @@ module.exports = {
     if (this.queue.length <= 0) {
       this.polls.forEach(item => {
         if (item.curpoll < item.polltimefctr) {
-          item.curpoll ++;
+          item.curpoll++;
         } else {
           item.curpoll = 1;
         }
-      })
+      });
       this.queue = tools.getPollArray(this.polls);
     }
-    //this.plugin.log(`Queue = ${util.inspect(this.queue)}`, 2);
+    // this.plugin.log(`Queue = ${util.inspect(this.queue)}`, 2);
     item = this.queue.shift();
-    if (typeof item !== 'object') { 
+    if (typeof item !== 'object') {
       item = this.polls[item];
-      
     }
-    //this.plugin.log(`sendNext item = ${util.inspect(item)}`, 2);
+
     if (item) {
       return this.read(item, !isOnce);
-    } else {
-      await sleep(this.params.polldelay || 1);
-      setImmediate(() => {
-        this.sendNext();
-      });
     }
-    
+
+    await sleep(this.params.polldelay || 1);
+    setImmediate(() => {
+      this.sendNext();
+    });
   },
 
   checkError(e) {
+    let exitCode = 0;
     if (e.errno && networkErrors.includes(e.errno)) {
       this.plugin.log('Network ERROR: ' + e.errno, 1);
-      this.terminatePlugin();
-      process.exit(1);
+      exitCode = 1;
     } else {
       this.plugin.log('ERROR: ' + util.inspect(e), 1);
+
+      // Если все каналы c chstatus=1 - перезагрузить плагин
+      for (const item of this.channels) {
+        if (!this.channelsChstatus[item.id]) return;
+      }
+      this.plugin.log('All channels have bad status! Exit with code 42', 1);
+      exitCode = 42;
     }
 
-    // TODO - проверить ошибку и не всегда выходить
-    /*if (this.params.transport == 'tcp') {
-      this.terminatePlugin();
-      process.exit(1);
-    }*/
+    this.terminatePlugin();
+    process.exit(exitCode);
   },
 
   getVartype(vt) {
