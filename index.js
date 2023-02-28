@@ -14,10 +14,10 @@ const modbus = require("./app");
     plugin.log("Modbus Master plugin has started.");
     plugin.params = await plugin.params.get();
     plugin.log('Received params...');
-    console.log("Params:", util.inspect(plugin.params));
+    plugin.log("Params:" + util.inspect(plugin.params), 1);
     modbus.channels = await plugin.channels.get();
     if (modbus.channels.length > 0) {
-      plugin.log(`Received ${modbus.channels.length} channels...`);
+      plugin.log(`Received ${modbus.channels.length} channels...`, 1);
     } else {
       plugin.log('Empty channels list!');
       process.exit(2);

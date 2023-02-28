@@ -31,7 +31,8 @@ module.exports = {
       await this.updateChannels(false);
 
       let connectionStr =
-        this.params.transport !== 'rtu' ? `${this.params.host}:${this.params.port}` : this.params.serialport;
+        this.params.transport !== 'rtu' ? `${this.params.host}:${this.params.port}` 
+        : this.params.autoCom ? this.params.serialport : this.params.serialportman;
 
       this.client = new Modbus();
 

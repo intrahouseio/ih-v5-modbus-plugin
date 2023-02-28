@@ -56,13 +56,26 @@
       "default": "502",
       "hide": "!data.p1.transport.id || data.p1.transport.id == \"rtu\" || data.p1.transport.id == \"ascii\""
     },
-
+    {
+      "prop" : "autoCom",
+      "title": "$getlistofCOMs",
+      "type": "cb",
+      "hide": "!data.p1.transport.id || (data.p1.transport.id !== \"rtu\" && data.p1.transport.id !== \"ascii\")",
+      "default": true
+    },
+    {
+      "prop": "serialportman",
+      "title": "$port",
+      "type": "input",
+      "default": "/dev/ttyUSB1",
+      "hide": "data.p1.autoCom || !data.p1.transport.id || (data.p1.transport.id !== \"rtu\" && data.p1.transport.id !== \"ascii\")"
+    },
     {
       "prop": "serialport",
       "title": "$port",
       "type": "droplist",
       "data": "__tool.comports",
-      "hide": "!data.p1.transport.id || (data.p1.transport.id !== \"rtu\" && data.p1.transport.id !== \"ascii\")"
+      "hide": "!data.p1.autoCom || !data.p1.transport.id || (data.p1.transport.id !== \"rtu\" && data.p1.transport.id !== \"ascii\")"
     },
 
     {

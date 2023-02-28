@@ -1,6 +1,7 @@
 {
     "transport":"Transport",
     "port":"Port",
+    "getlistofCOMs": "Get list of COM ports",
     "timeout":"Waiting for response to request (ms)",
     "polldelay":"Interval between requests (ms)",
     "maxreadlen":"Max number of words when reading range",
