@@ -176,26 +176,28 @@ function getRefobj(item) {
     widx: 0
   };
 
-  if (item.bit) {
-    refobj.bit = item.bit;
-    refobj.offset = item.offset;
-  }
-
-  if (item.usek) {
-    refobj.usek = item.usek;
-    refobj.ks0 = parseInt(item.ks0) || 0;
-    refobj.ks = parseInt(item.ks) || 0;
-    refobj.kh0 = parseInt(item.kh0) || 0;
-    refobj.kh = parseInt(item.kh) || 0;
-
-    if (refobj.ks <= refobj.ks0) {
-      refobj.ks = refobj.ks0 + 1;
+  if (item.vartype != 'bool') {
+    if (item.bit) {
+      refobj.bit = item.bit;
+      refobj.offset = item.offset;
     }
-
-    if (refobj.kh <= refobj.kh0) {
-      refobj.kh = refobj.kh0 + 1;
+  
+    if (item.usek) {
+      refobj.usek = item.usek;
+      refobj.ks0 = parseInt(item.ks0) || 0;
+      refobj.ks = parseInt(item.ks) || 0;
+      refobj.kh0 = parseInt(item.kh0) || 0;
+      refobj.kh = parseInt(item.kh) || 0;
+  
+      if (refobj.ks <= refobj.ks0) {
+        refobj.ks = refobj.ks0 + 1;
+      }
+  
+      if (refobj.kh <= refobj.kh0) {
+        refobj.kh = refobj.kh0 + 1;
+      }
     }
-  }
+  }  
   return refobj;
 }
 

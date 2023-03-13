@@ -190,7 +190,7 @@ module.exports = {
       this.channels.filter(item => item.r),
       this.params
     );
-    this.plugin.log(`Polls = ${util.inspect(this.polls)}`, 2);
+    this.plugin.log(`Polls = ${util.inspect(this.polls, null, 4)}`, 2);
 
     this.queue = tools.getPollArray(this.polls); // Очередь опроса -на чтение
     this.qToWrite = []; // Очередь на запись - имеет более высокий приоритет
