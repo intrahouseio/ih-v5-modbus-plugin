@@ -16,6 +16,7 @@ module.exports = {
   async start(plugin) {
     this.plugin = plugin;
     this.params = plugin.params;
+    this.params.timeout  = Number(this.params.timeout);
     this.plugin.onAct(this.parseAct.bind(this));
     this.plugin.onCommand(async data => this.parseCommand(data));
 
