@@ -232,7 +232,7 @@ module.exports = {
           };
 
           this.plugin.log(`Connecting options = ${util.inspect(options)}`, 1);
-          await this.client.connectRTUBuffered(this.params.serialport, options);
+          await this.client.connectRTUBuffered(this.params.autoCom ? this.params.serialport : this.params.serialportman, options);
 
           break;
         case 'ascii':
@@ -244,7 +244,7 @@ module.exports = {
           };
 
           this.plugin.log(`Connecting options = ${util.inspect(options)}`, 1);
-          await this.client.connectAsciiSerial(this.params.serialport, options);
+          await this.client.connectAsciiSerial(this.params.autoCom ? this.params.serialport : this.params.serialportman, options);
 
           break;
         default:
