@@ -551,7 +551,7 @@ function parseBufferWrite(value, item) {
 
 function writeValue(buffer, item) {
   let val = item.usek ? transformStoH(buffer, item) : buffer;
-  console.log('tools.writeValue val = ' + util.inspect(val))
+  //console.log('tools.writeValue val = ' + util.inspect(val))
   return parseBufferWrite(val, item);
 }
 
