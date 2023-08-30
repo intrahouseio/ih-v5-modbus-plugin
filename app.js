@@ -12,11 +12,12 @@ module.exports = {
   channels: [],
   channelsData: {},
   channelsChstatus: {},
+  qToRead: [],
 
   async start(plugin) {
     this.plugin = plugin;
     this.params = plugin.params;
-    this.params.timeout  = Number(this.params.timeout);
+    this.params.timeout = Number(this.params.timeout);
     this.plugin.onAct(this.parseAct.bind(this));
     this.plugin.onCommand(async data => this.parseCommand(data));
 
@@ -32,8 +33,8 @@ module.exports = {
       await this.updateChannels(false);
 
       let connectionStr =
-        this.params.transport !== 'rtu' ? `${this.params.host}:${this.params.port}` 
-        : this.params.autoCom ? this.params.serialport : this.params.serialportman;
+        this.params.transport !== 'rtu' ? `${this.params.host}:${this.params.port}`
+          : this.params.autoCom ? this.params.serialport : this.params.serialportman;
 
       this.client = new Modbus();
 
@@ -108,7 +109,9 @@ module.exports = {
       res.address = parseInt(chanItem.address);
       res.vartype = chanItem.vartype;
       res.fcw = parseInt(chanItem.fcw);
+      
       res.force = chanItem.r ? 1 : 0;
+      //res.force = chanItem.req ? 1 : 0;
     }
     if (chanItem.parentoffset) res.address += parseInt(chanItem.parentoffset);
 
@@ -125,6 +128,14 @@ module.exports = {
       res.kh0 = parseInt(chanItem.kh0);
       res.kh = parseInt(chanItem.kh);
     }
+
+    if (chanItem.bit) {
+      res.bit = chanItem.bit;
+      res.offset = parseInt(chanItem.offset);
+      res.fcr = parseInt(chanItem.fcr);
+      res.title = chanItem.chan;
+    }
+
     return res;
   },
 
@@ -154,7 +165,15 @@ module.exports = {
 
           this.plugin.sendResponse(Object.assign({ payload }, message), 1);
           break;
+        case 'readOnReq':
+          if (message.data != undefined) {
+            message.data.forEach(item => {
+              item.vartype = item.manbo ? this.getVartypeMan(item) : this.getVartype(item.vartype);
+            })
+            this.setRead(message);
+          }
 
+          break;
         default:
           break;
       }
@@ -272,6 +291,13 @@ module.exports = {
     }
   },
 
+
+  setRead(message) {
+    this.qToRead = tools.getRequests(message.data, this.params);
+    this.message = { unit: message.unit, param: message.param, sender: message.sender, type: message.type, uuid: message.uuid };
+
+  },
+
   async read(item, allowSendNext) {
     this.client.setID(item.unitid);
     this.plugin.log(
@@ -364,6 +390,37 @@ module.exports = {
     }
   },
 
+  async readRequest(item, allowSendNext) {
+    try {
+      const res = await this.modbusReadCommand(item.fcr, item.address, item.length, item.ref);
+      if (res && res.buffer) {
+
+        const data = tools.getDataFromResponse(res.buffer, item.ref);
+        this.plugin.sendData(data);
+      }
+    } catch (error) {
+      this.message.result = "Read Request Fail";
+      this.plugin.sendResponse(this.message, 1);
+      this.checkError(error);
+    }
+
+    if (this.qToRead.length == 0) {
+      this.message.result = "Read Request Ok";
+      this.plugin.sendResponse(this.message, 1);
+    }
+
+
+    if (this.qToRead.length || allowSendNext) {
+      if (!this.qToRead.length) {
+        await sleep(this.params.polldelay || 10); // Интервал между запросами
+      }
+
+      setImmediate(() => {
+        this.sendNext();
+      });
+    }
+  },
+
   async write(item, allowSendNext) {
     this.client.setID(parseInt(item.unitid));
     let fcw;
@@ -378,6 +435,21 @@ module.exports = {
     if (fcw == 6 || fcw == 16) {
       val = tools.writeValue(item.value, item);
       if (Buffer.isBuffer(val) && val.length > 2) fcw = 16;
+
+      if (item.bit) {
+        item.ref = [];
+        let refobj = tools.getRefobj(item);
+        refobj.widx = item.address;
+        item.ref.push(refobj);
+        const res = await this.modbusReadCommand(item.fcr, item.address, tools.getVarLen(item.vartype), item.ref);
+        val = res.buffer;
+        if (item.offset < 8) {
+          val[1] = item.value == 1 ? val[1] | (1 << item.offset) : val[1] & ~(1 << item.offset);
+        } else {
+          val[0] = item.value == 1 ? val[0] | (1 << (item.offset - 8)) : val[0] & ~(1 << (item.offset - 8));
+        }
+      }
+
     }
 
     this.plugin.log(
@@ -428,6 +500,20 @@ module.exports = {
     if (fcw == 6 || fcw == 16) {
       val = tools.writeValue(item.value, item);
       if (Buffer.isBuffer(val) && val.length > 2) fcw = 16;
+
+      if (item.bit) {
+        item.ref = [];
+        let refobj = tools.getRefobj(item);
+        refobj.widx = item.address;
+        item.ref.push(refobj);
+        const res = await this.modbusReadCommand(item.fcr, item.address, tools.getVarLen(item.vartype), item.ref);
+        val = res.buffer;
+        if (item.offset < 8) {
+          val[1] = item.value == 1 ? val[1] | (1 << item.offset) : val[1] & ~(1 << item.offset);
+        } else {
+          val[0] = item.value == 1 ? val[0] | (1 << (item.offset - 8)) : val[0] & ~(1 << (item.offset - 8));
+        }
+      }
     }
 
     this.plugin.log(
@@ -450,6 +536,8 @@ module.exports = {
     } catch (err) {
       this.checkError(err);
     }
+
+
   },
 
   async modbusWriteCommand(fcw, address, value) {
@@ -503,6 +591,10 @@ module.exports = {
       item = this.qToWrite.shift();
       this.plugin.log(`sendNext: WRITE item = ${util.inspect(item)}`, 2);
       return this.write(item, !isOnce);
+    }
+    if (this.qToRead.length) {
+      item = this.qToRead.shift();
+      return this.readRequest(item, !isOnce);
     }
 
     if (this.queue.length <= 0) {
