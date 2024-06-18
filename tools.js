@@ -161,7 +161,7 @@ function getPolls(channels, params) {
         fcr: item.fcr,
         manbo: item.manbo,
         address: item.address,
-        grmanstr: item.grmanstr,
+        grmanstr: item.parentnodefolder ? item.parentnodefolder + item.grmanstr :  item.grmanstr,
         polltimefctr: item.polltimefctr || 1,
         curpoll: 1,
         ref: []
@@ -216,7 +216,8 @@ function getPolls(channels, params) {
   }
 
   function isDiffBlockMan(citem) {
-    return  citem.grmanstr != currentMan.grmanstr; 
+    let grmanstr = citem.parentnodefolder ? citem.parentnodefolder + citem.grmanstr :  citem.grmanstr;
+    return  grmanstr != currentMan.grmanstr; 
   }
 
   function getLengthAfterAdd(citem) {
