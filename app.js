@@ -270,8 +270,15 @@ module.exports = {
           throw new Error(`Протокол ${this.params.transport} еще не имплементирован`);
       }
     } catch (err) {
-      let charr = this.channels.map(item => ({ id: item.id, chstatus: 1, title: item.title }));
-      this.plugin.sendData(charr);
+      let charr = [];
+        this.channels.forEach(chitem => {         
+          if (!this.channelsChstatus[chitem.id]) {
+            charr.push({ id: chitem.id, chstatus: 1, title: chitem.title })
+            this.channelsChstatus[chitem.id] = 1;
+          }
+        })
+        if (charr.length > 0) this.plugin.sendData(charr);
+
       this.checkError(err);
       this.plugin.log(`Connection fail! EXIT`, 1);
       process.exit(1);
@@ -310,20 +317,20 @@ module.exports = {
     try {
       let res = await this.modbusReadCommand(item.fcr, item.address, item.length, item.ref);
       if (res && res.buffer) {
-        const data = tools.getDataFromResponse(res.buffer, item.ref);
-        data.forEach(el => {
-          this.channelsChstatus[el.id] = el.chstatus;
-        });
-
+        const data = tools.getDataFromResponse(res.buffer, item.ref);      
         if (this.params.sendChanges == 1) {
           let arr = data.filter(ditem => {
-            if (this.channelsData[ditem.id] != ditem.value) {
+            if (this.channelsData[ditem.id] != ditem.value || this.channelsChstatus[ditem.id] == 1) {
+              this.channelsChstatus[ditem.id] = ditem.chstatus;
               this.channelsData[ditem.id] = ditem.value;
               return true;
             }
           });
           if (arr.length > 0) this.plugin.sendData(arr);
         } else {
+          data.forEach(el => {
+            this.channelsChstatus[el.id] = el.chstatus;
+          });
           this.plugin.sendData(data);
         }
 
@@ -381,11 +388,14 @@ module.exports = {
           throw new Error(`Функция ${fcr} на чтение не поддерживается`);
       }
     } catch (err) {
-      let charr = ref.map(item => ({ id: item.id, chstatus: 1, title: item.title }));
-      charr.forEach(el => {
-        this.channelsChstatus[el.id] = 1;
+      let charr = [];
+      ref.forEach(item => {
+        if (!this.channelsChstatus[item.id]) {
+          this.channelsChstatus[item.id] = 1;
+          charr.push({ id: item.id, chstatus: 1, title: item.title })
+        }  
       });
-      this.plugin.sendData(charr);
+      if (charr.length) this.plugin.sendData(charr);  
       this.checkError(err);
     }
   },
