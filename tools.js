@@ -21,7 +21,7 @@ function getDataFromResponse(buf, ref) {
     return;
   }
 
-  return ref.map(item => ({ id: item.id, value: readValue(buf, item), title:item.title, chstatus: 0 }));
+  return ref.map(item => ({ id: item.id, value: readValue(buf, item), title: item.title, chstatus: 0 }));
 }
 
 function getRequests(channels, params) {
@@ -38,7 +38,7 @@ function getRequests(channels, params) {
   let i = 0;
   let current;
   let length;
-  
+
   while (i < config.length) {
     let item = config[i];
     if (!current || isDiffBlock(item) || getLengthAfterAdd(item) > maxReadLen) {
@@ -61,7 +61,7 @@ function getRequests(channels, params) {
     length = getLengthAfterAdd(item, current);
 
     let refobj = getRefobj(item);
-    refobj.widx = item.address - current.address;    
+    refobj.widx = item.address - current.address;
     current.ref.push(refobj);
     i++;
   }
@@ -73,13 +73,13 @@ function getRequests(channels, params) {
   return result;
 
   function getLengthAfterAdd(citem) {
-    return citem.address - current.address + getVarLen(citem.vartype);
+    return citem.address - current.address + getVarLen(citem.vartype, citem.strlength);
   }
 
   function isDiffBlock(citem) {
     return citem.unitid != current.unitid || citem.fcr != current.fcr;
   }
-  
+
 }
 
 function getPolls(channels, params) {
@@ -151,7 +151,7 @@ function getPolls(channels, params) {
     if (!currentMan || isDiffBlockMan(item) || getLengthManAfterAdd(item) > maxReadLen) {
       // Записать предыдущий элемент
       if (currentMan && lengthMan) {
-        result.push(Object.assign({ length : lengthMan }, currentMan));
+        result.push(Object.assign({ length: lengthMan }, currentMan));
       }
 
       lengthMan = 0;
@@ -161,7 +161,7 @@ function getPolls(channels, params) {
         fcr: item.fcr,
         manbo: item.manbo,
         address: item.address,
-        grmanstr: item.parentnodefolder ? item.parentnodefolder + item.grmanstr :  item.grmanstr,
+        grmanstr: item.parentnodefolder ? item.parentnodefolder + item.grmanstr : item.grmanstr,
         polltimefctr: item.polltimefctr || 1,
         curpoll: 1,
         ref: []
@@ -187,7 +187,7 @@ function getPolls(channels, params) {
         }    
     ];
     */
-  
+
   // Добавить негрупповое чтение
   channels
     .filter(item => !item.gr && item.r && !item.req)
@@ -216,25 +216,26 @@ function getPolls(channels, params) {
   }
 
   function isDiffBlockMan(citem) {
-    let grmanstr = citem.parentnodefolder ? citem.parentnodefolder + citem.grmanstr :  citem.grmanstr;
-    return  grmanstr != currentMan.grmanstr; 
+    let grmanstr = citem.parentnodefolder ? citem.parentnodefolder + citem.grmanstr : citem.grmanstr;
+    return grmanstr != currentMan.grmanstr;
   }
 
   function getLengthAfterAdd(citem) {
-    return citem.address - current.address + getVarLen(citem.vartype);
+    return citem.address - current.address + getVarLen(citem.vartype, citem.strlength);
   }
 
   function getLengthManAfterAdd(citem) {
-    return citem.address - currentMan.address + getVarLen(citem.vartype);
+    return citem.address - currentMan.address + getVarLen(citem.vartype, citem.strlength);
   }
 }
 
 function getRefobj(item) {
-  const title = item.parentname ? item.parentname+'/'+item.chan : item.chan;
+  const title = item.parentname ? item.parentname + '/' + item.chan : item.chan;
   let refobj = {
     id: item.id,
     title,
     vartype: item.vartype,
+    strlength: item.strlength,
     widx: 0
   };
 
@@ -243,23 +244,23 @@ function getRefobj(item) {
       refobj.bit = item.bit;
       refobj.offset = item.offset;
     }
-  
+
     if (item.usek) {
       refobj.usek = item.usek;
       refobj.ks0 = parseInt(item.ks0) || 0;
       refobj.ks = parseInt(item.ks) || 0;
       refobj.kh0 = parseInt(item.kh0) || 0;
       refobj.kh = parseInt(item.kh) || 0;
-  
+
       if (refobj.ks <= refobj.ks0) {
         refobj.ks = refobj.ks0 + 1;
       }
-  
+
       if (refobj.kh <= refobj.kh0) {
         refobj.kh = refobj.kh0 + 1;
       }
     }
-  }  
+  }
   return refobj;
 }
 
@@ -274,10 +275,9 @@ function getPollArray(polls) {
 
 function parseBufferRead(buffer, item) {
   let buf;
-  let i1;
-  let i2;
-  let offset = item.widx;
+  let offset = Number(item.widx);
   let vartype = item.vartype;
+  let strlength = Number(item.strlength);
 
   switch (vartype) {
     case 'bool':
@@ -337,12 +337,34 @@ function parseBufferRead(buffer, item) {
       return buf.readInt32BE(0);
     case 'uint64be':
       return Number(buffer.readBigUInt64BE(offset * 2));
+    case 'uint64sw':
+      buf = Buffer.alloc(8);
+      buf = buffer.subarray(offset * 2, offset * 2 + 8);
+      buf = reverseByte(buf);
+      return Number(buf.readBigUInt64BE());
     case 'uint64le':
       return Number(buffer.readBigUInt64LE(offset * 2));
+    case 'uint64sb':
+      buf = Buffer.alloc(8);
+      buf = buffer.subarray(offset * 2, offset * 2 + 8);
+      buf.reverse();
+      buf = reverseByte(buf);
+      return Number(buf.readBigUInt64BE());
     case 'int64be':
       return Number(buffer.readBigInt64BE(offset * 2));
+    case 'int64sw':
+      buf = Buffer.alloc(8);
+      buf = buffer.subarray(offset * 2, offset * 2 + 8);
+      buf = reverseByte(buf);
+      return Number(buf.readBigInt64BE());
     case 'int64le':
       return Number(buffer.readBigInt64LE(offset * 2));
+    case 'int64sb':
+      buf = Buffer.alloc(8);
+      buf = buffer.subarray(offset * 2, offset * 2 + 8);
+      buf.reverse();
+      buf = reverseByte(buf);
+      return Number(buf.readBigInt64LE());
     case 'floatbe':
       return buffer.readFloatBE(offset * 2);
     case 'floatle':
@@ -365,9 +387,58 @@ function parseBufferRead(buffer, item) {
       return buffer.readDoubleBE(offset * 2);
     case 'doublele':
       return buffer.readDoubleLE(offset * 2);
+    case 'strasciibe':
+      buf = Buffer.alloc(strlength);
+      buf = buffer.toString('ascii', offset * 2, offset * 2 + strlength);
+      return buf;
+    case 'strasciisw':
+      buf = Buffer.alloc(strlength);
+      buf = buffer.subarray(offset * 2, offset * 2 + strlength);
+      buf = reverseByte(buf);
+      buf = buf.toString('ascii');
+      return buf;
+    case 'strasciile':
+      buf = Buffer.alloc(strlength);
+      buf = buffer.subarray(offset * 2, offset * 2 + strlength);
+      return buf.reverse().toString('ascii');
+    case 'strasciisb':
+      buf = Buffer.alloc(strlength);
+      buf = buffer.subarray(offset * 2, offset * 2 + strlength);
+      buf.reverse();
+      buf = reverseByte(buf);
+      buf = buf.toString('ascii');
+      return buf;
+    case 'strutf8be':
+      buf = Buffer.alloc(strlength * 2);
+      buf = buffer.toString('utf-8', offset * 2, offset * 2 + strlength * 2);
+      return buf;
+    case 'strutf8sw':
+      buf = Buffer.alloc(strlength * 2);
+      buf = buffer.subarray(offset * 2, offset * 2 + strlength * 2);
+      buf = reverseByte(buf);
+      buf = buf.toString('utf-8');
+      return buf;
+    case 'strutf8le':
+      buf = Buffer.alloc(strlength * 2);
+      buf = buffer.subarray(offset * 2, offset * 2 + strlength * 2);
+      return buf.reverse().toString('utf-8');
+    case 'strutf8sb':
+      buf = Buffer.alloc(strlength * 2);
+      buf = buffer.subarray(offset * 2, offset * 2 + strlength * 2);
+      buf.reverse();
+      buf = reverseByte(buf);
+      buf = buf.toString('utf-8');
+      return buf;
     default:
       throw new Error(`Invalid type: ${vartype}`);
   }
+}
+
+function reverseByte(buf) {
+  for (let i = 1; i < buf.length; i += 2) {
+    [buf[i], buf[i - 1]] = [buf[i - 1], buf[i]];
+  }
+  return buf
 }
 
 function readValue(buffer, item) {
@@ -393,6 +464,8 @@ function parseBufferWrite(value, item) {
   let a2;
   let buffer;
   let vartype = item.vartype;
+  let strbuf = Buffer.from(' ', 'ascii');
+  let strlength = Number(item.strlength);
 
   switch (vartype) {
     case 'uint8be':
@@ -543,6 +616,59 @@ function parseBufferWrite(value, item) {
       buffer = Buffer.alloc(8);
       buffer.writeDoubleLE(value, 0);
       break;
+    case 'strasciibe':
+      a0 = Buffer.from(value, 'ascii');
+      if (a0.length % 2 == 1) {
+        a0 = Buffer.concat([a0, strbuf]);
+      }
+      buffer = a0.subarray(0, strlength)
+      break;
+    case 'strasciisw':
+      a0 = Buffer.from(value, 'ascii');
+      if (a0.length % 2 == 1) {
+        a0 = Buffer.concat([a0, strbuf]);
+      }
+      a0 = reverseByte(a0);      
+      buffer = a0.subarray(0, strlength)
+      break;
+    case 'strasciile':
+      a0 = Buffer.from(value, 'ascii');
+      a0 = a0.reverse();
+      a1 = a0.subarray(0, strlength);
+      if (a1.length % 2 == 1) {
+        a1 = Buffer.concat([a1, strbuf]);
+      }
+      buffer = a1;
+      break;
+    case 'strasciisb':
+      a0 = Buffer.from(value, 'ascii');
+      a0.reverse();
+      a1 = a0.subarray(0, strlength);
+      if (a1.length % 2 == 1) {
+        a1 = Buffer.concat([a1, strbuf]);
+      }
+      buffer = reverseByte(a1);      
+      break;
+    case 'strutf8be':
+      a0 = Buffer.from(value, 'utf-8');
+      buffer = a0.subarray(0, strlength * 2);
+      break;
+    case 'strutf8sw':
+      a0 = Buffer.from(value, 'utf-8');
+      a0 = reverseByte(a0);
+      buffer = a0.subarray(0, strlength * 2);
+      break;
+    case 'strutf8le':
+      a0 = Buffer.from(value, 'utf-8');
+      a1 = a0.subarray(0, strlength * 2);
+      buffer = a1.reverse();
+      break;
+    case 'strutf8sb':
+      a0 = Buffer.from(value, 'utf-8');
+      a0.reverse();
+      a0 = reverseByte(a0);
+      buffer = a0.subarray(0, strlength * 2);
+      break;
     default:
       console.log(`Invalid type: ${vartype}  THROW`);
       throw new Error(`Invalid type: ${vartype}`);
@@ -565,7 +691,7 @@ function getBitValue(buffer, offset) {
 }
 
 // Возвращает кол-во СЛОВ (word) или бит по типу переменной
-function getVarLen(vartype) {
+function getVarLen(vartype, strlength) {
   switch (vartype) {
     case 'bool':
     case 'uint8be':
@@ -594,11 +720,28 @@ function getVarLen(vartype) {
 
     case 'int64be':
     case 'int64le':
+    case 'int64sw':
+    case 'int64sb':
     case 'uint64be':
+    case 'uint64sw':
+    case 'uint64sb':
     case 'uint64le':
     case 'doublebe':
     case 'doublele':
       return 4;
+
+    case 'strasciibe':
+    case 'strasciile':
+    case 'strasciisw':
+    case 'strasciisb':
+      return Math.ceil(strlength / 2);
+
+    case 'strutf8be':
+    case 'strutf8le':
+    case 'strutf8sw':
+    case 'strutf8sb':
+      return strlength;
+
     default:
       throw new Error(`Invalid type: ${vartype}`);
   }

@@ -113,12 +113,27 @@
         {
           "id": "double",
           "title": "DOUBLE, 8 байт"
+        },
+        {
+          "id": "strutf8",
+          "title": "STRING UTF-8"
+        },
+        {
+          "id": "strascii",
+          "title": "STRING ASCII"
         }
       ],
 
       "default": "int16"
     },
-    { "prop": "manbo", "title": "$manbo", "type": "cb" },
+    {
+      "prop": "strlength",
+      "title": "$strlength",
+      "type": "input",
+      "default": "1",
+      "hide": "data.p2.vartype.id != 'strutf8' && data.p2.vartype.id != 'strascii'"
+    },
+    { "prop": "manbo", "title": "$manbo", "type": "cb"},
     {
       "prop": "manbo8",
       "title": "$bo8",
@@ -188,12 +203,20 @@
           "title": "Big-Endian, B1B2B3B4B5B6B7B8 => B1B2B3B4B5B6B7B8"
         },
         {
+          "id": "sw",
+          "title": "Big-Endian, swap B1B2B3B4B5B6B7B8 => B2B1B4B3B6B5B8B7"
+        },
+        {
           "id": "le",
           "title": "Little-Endian, B1B2B3B4B5B6B7B8 => B8B7B6B5B4B3B2B1"
+        },
+        {
+          "id": "sb",
+          "title": "Little-Endian, swap B1B2B3B4B5B6B7B8 => B7B8B5B6B3B4B1B2"
         }
       ],
       "default": "be",
-      "hide": "!data.p2.manbo || (data.p2.vartype.id !== 'uint64' && data.p2.vartype.id !== 'int64' && data.p2.vartype.id !== 'double')"
+      "hide": "!data.p2.manbo || (data.p2.vartype.id !== 'uint64' && data.p2.vartype.id !== 'int64' && data.p2.vartype.id !== 'double' && data.p2.vartype.id != 'strutf8' && data.p2.vartype.id != 'strascii')"
     },
     {
       "prop": "fcr",
@@ -345,10 +368,25 @@
         {
           "id": "double",
           "title": "DOUBLE, 8 bytes"
+        },
+        {
+          "id": "strutf8",
+          "title": "STRING UTF-8"
+        },
+        {
+          "id": "strascii",
+          "title": "STRING ASCII"
         }
       ],
       "hide": "!data.p4.diffw",
       "default": "int16"
+    },
+    {
+      "prop": "wstrlength",
+      "title": "$strlength",
+      "type": "input",
+      "default": "1",
+      "hide": "data.p4.wvartype.id != 'strutf8' || data.p4.wvartype.id != 'strascii'"
     },
     {
       "prop": "fcw",

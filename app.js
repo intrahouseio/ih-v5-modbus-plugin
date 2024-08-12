@@ -87,11 +87,16 @@ module.exports = {
     // Копировать свойства канала в объект
     const res = {
       id: chanItem.id,
-      unitid: chanItem.unitid,
-      value: Number(chanItem.value) || 0,
+      unitid: chanItem.unitid,      
       command: chanItem.value || 'set',
       manbo: chanItem.manbo
     };
+
+    if (chanItem.vartype.includes('str')) {
+      res.value = chanItem.value;
+    } else {
+      res.value = Number(chanItem.value) || 0;
+    }
 
     if (chanItem.manbo) {
       res.manbo8 = chanItem.manbo8;
@@ -103,11 +108,13 @@ module.exports = {
     if (chanItem.diffw || (!chanItem.r && chanItem.wvartype && chanItem.wvartype)) {
       res.address = parseInt(chanItem.waddress);
       res.vartype = chanItem.wvartype;
+      res.strlength = chanItem.wstrlength;
       res.fcw = parseInt(chanItem.fcw);
       res.force = 0;
     } else {
       res.address = parseInt(chanItem.address);
       res.vartype = chanItem.vartype;
+      res.strlength = chanItem.strlength;
       res.fcw = parseInt(chanItem.fcw);
       
       res.force = chanItem.r ? 1 : 0;
@@ -364,7 +371,8 @@ module.exports = {
 
       return tools.parseBufferRead(res.buffer, {
         widx: item.offset,
-        vartype: item.vartype
+        vartype: item.vartype,
+        strlength: item.strlength
       });
     } catch (err) {
       this.checkError(err);
@@ -443,15 +451,16 @@ module.exports = {
     }
     let val = item.value;
     if (fcw == 6 || fcw == 16) {
-      val = tools.writeValue(item.value, item);
+        val = tools.writeValue(item.value, item);
+   
       if (Buffer.isBuffer(val) && val.length > 2) fcw = 16;
-
+      
       if (item.bit) {
         item.ref = [];
         let refobj = tools.getRefobj(item);
         refobj.widx = item.address;
         item.ref.push(refobj);
-        const res = await this.modbusReadCommand(item.fcr, item.address, tools.getVarLen(item.vartype), item.ref);
+        const res = await this.modbusReadCommand(item.fcr, item.address, tools.getVarLen(item.vartype, item.strlength), item.ref);
         val = res.buffer;
         if (item.offset < 8) {
           val[1] = item.value == 1 ? val[1] | (1 << item.offset) : val[1] & ~(1 << item.offset);
@@ -516,7 +525,7 @@ module.exports = {
         let refobj = tools.getRefobj(item);
         refobj.widx = item.address;
         item.ref.push(refobj);
-        const res = await this.modbusReadCommand(item.fcr, item.address, tools.getVarLen(item.vartype), item.ref);
+        const res = await this.modbusReadCommand(item.fcr, item.address, tools.getVarLen(item.vartype, item.strlength), item.ref);
         val = res.buffer;
         if (item.offset < 8) {
           val[1] = item.value == 1 ? val[1] | (1 << item.offset) : val[1] & ~(1 << item.offset);
@@ -660,6 +669,10 @@ module.exports = {
       return vt + this.params.bo8;
     }
 
+    if (vt == 'strascii' || vt == 'strutf8') {
+      return vt + this.params.bo64;
+    }
+
     if (bits === '16') {
       return vt + this.params.bo16;
     }
@@ -681,6 +694,10 @@ module.exports = {
 
     if (vt === 'int8' || vt === 'uint8') {
       return vt + item.manbo8;
+    }
+
+    if (vt == 'strascii' || vt == 'strutf8') {
+      return vt + item.manbo64;
     }
 
     if (bits === '16') {

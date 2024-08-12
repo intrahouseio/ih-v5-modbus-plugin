@@ -48,6 +48,7 @@
     "vartype": "int16",
     "wvartype": "int16",
     "address": "0x0000",
+    "strlength": 1,
     "manbo16": "be",
     "offset": 0,
     "unitid": 1,

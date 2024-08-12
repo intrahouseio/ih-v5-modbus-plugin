@@ -17,6 +17,7 @@ const modbus = require("./app");
     plugin.log("Params:" + util.inspect(plugin.params), 1);
     modbus.channels = await plugin.channels.get();
     if (modbus.channels.length > 0) {
+      plugin.log("Received:" + util.inspect(modbus.channels), 1);
       plugin.log(`Received ${modbus.channels.length} channels...`, 1);
     } else {
       plugin.log('Empty channels list!');
