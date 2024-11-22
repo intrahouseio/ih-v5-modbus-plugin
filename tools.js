@@ -669,6 +669,9 @@ function parseBufferWrite(value, item) {
       a0 = reverseByte(a0);
       buffer = a0.subarray(0, strlength * 2);
       break;
+    case 'uintarray':
+      buffer = Uint16Array.from(value);
+      break;
     default:
       console.log(`Invalid type: ${vartype}  THROW`);
       throw new Error(`Invalid type: ${vartype}`);

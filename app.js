@@ -87,7 +87,7 @@ module.exports = {
     // Копировать свойства канала в объект
     const res = {
       id: chanItem.id,
-      unitid: chanItem.unitid,      
+      unitid: chanItem.unitid,
       command: chanItem.value || 'set',
       manbo: chanItem.manbo
     };
@@ -116,7 +116,7 @@ module.exports = {
       res.vartype = chanItem.vartype;
       res.strlength = chanItem.strlength;
       res.fcw = parseInt(chanItem.fcw);
-      
+
       res.force = chanItem.r ? 1 : 0;
       //res.force = chanItem.req ? 1 : 0;
     }
@@ -179,7 +179,21 @@ module.exports = {
             })
             this.setRead(message);
           }
-
+        case 'writeWordArray':
+          if (message.data != undefined) {
+            const item = {}
+            if (message.data.unitid == undefined || message.data.address == undefined || message.data.value == undefined) {
+              this.plugin.sendResponse(message, 0);
+            } else {
+              item.unitid = message.data.unitid;
+              item.address = message.data.address;
+              item.fcw = 16;
+              item.value = message.data.value;
+              item.vartype = 'uintarray';
+              this.qToWrite.push(item);
+              this.plugin.sendResponse(message, 1);
+            }
+          }
           break;
         default:
           break;
@@ -278,13 +292,13 @@ module.exports = {
       }
     } catch (err) {
       let charr = [];
-        this.channels.forEach(chitem => {         
-          if (!this.channelsChstatus[chitem.id]) {
-            charr.push({ id: chitem.id, chstatus: 1, title: chitem.title })
-            this.channelsChstatus[chitem.id] = 1;
-          }
-        })
-        if (charr.length > 0) this.plugin.sendData(charr);
+      this.channels.forEach(chitem => {
+        if (!this.channelsChstatus[chitem.id]) {
+          charr.push({ id: chitem.id, chstatus: 1, title: chitem.title })
+          this.channelsChstatus[chitem.id] = 1;
+        }
+      })
+      if (charr.length > 0) this.plugin.sendData(charr);
 
       this.checkError(err);
       this.plugin.log(`Connection fail! EXIT`, 1);
@@ -315,8 +329,7 @@ module.exports = {
   async read(item, allowSendNext) {
     this.client.setID(item.unitid);
     this.plugin.log(
-      `READ: unitId = ${item.unitid}, FC = ${item.fcr}, address = ${this.showAddress(item.address)}, length = ${
-        item.length
+      `READ: unitId = ${item.unitid}, FC = ${item.fcr}, address = ${this.showAddress(item.address)}, length = ${item.length
       }`,
       1
     );
@@ -324,7 +337,7 @@ module.exports = {
     try {
       let res = await this.modbusReadCommand(item.fcr, item.address, item.length, item.ref);
       if (res && res.buffer) {
-        const data = tools.getDataFromResponse(res.buffer, item.ref);      
+        const data = tools.getDataFromResponse(res.buffer, item.ref);
         if (this.params.sendChanges == 1) {
           let arr = data.filter(ditem => {
             if (this.channelsData[ditem.id] != ditem.value || this.channelsChstatus[ditem.id] == 1) {
@@ -360,8 +373,7 @@ module.exports = {
   async readValueCommand(item) {
     this.client.setID(item.unitid);
     this.plugin.log(
-      `READ: unitId = ${item.unitid}, FC = ${item.fcr}, address = ${this.showAddress(item.address)}, length = ${
-        item.length
+      `READ: unitId = ${item.unitid}, FC = ${item.fcr}, address = ${this.showAddress(item.address)}, length = ${item.length
       }`,
       1
     );
@@ -401,9 +413,9 @@ module.exports = {
         if (!this.channelsChstatus[item.id]) {
           this.channelsChstatus[item.id] = 1;
           charr.push({ id: item.id, chstatus: 1, title: item.title })
-        }  
+        }
       });
-      if (charr.length) this.plugin.sendData(charr);  
+      if (charr.length) this.plugin.sendData(charr);
       this.checkError(err);
     }
   },
@@ -451,10 +463,9 @@ module.exports = {
     }
     let val = item.value;
     if (fcw == 6 || fcw == 16) {
-        val = tools.writeValue(item.value, item);
-   
+      val = tools.writeValue(item.value, item);
       if (Buffer.isBuffer(val) && val.length > 2) fcw = 16;
-      
+
       if (item.bit) {
         item.ref = [];
         let refobj = tools.getRefobj(item);
