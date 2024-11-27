@@ -2,6 +2,7 @@
  * Функции разбора и формирования данных
  */
 const util = require('util');
+const iconv = require('iconv-lite');
 
 exports.parseBufferRead = parseBufferRead;
 exports.parseBufferWrite = parseBufferWrite;
@@ -278,6 +279,7 @@ function parseBufferRead(buffer, item) {
   let offset = Number(item.widx);
   let vartype = item.vartype;
   let strlength = Number(item.strlength);
+  let index = 0;
 
   switch (vartype) {
     case 'bool':
@@ -408,6 +410,30 @@ function parseBufferRead(buffer, item) {
       buf = reverseByte(buf);
       buf = buf.toString('ascii');
       return buf;
+    case 'strasciiwinbe':
+      buf = Buffer.alloc(strlength);
+      buf = buffer.subarray(offset * 2, offset * 2 + strlength);
+      index = buf.findIndex((item) => item == 0);
+      return iconv.decode(buf.subarray(0, index), 'win1251');
+    case 'strasciiwinsw':
+      buf = Buffer.alloc(strlength);
+      buf = buffer.subarray(offset * 2, offset * 2 + strlength);
+      buf = reverseByte(buf);
+      index = buf.findIndex((item) => item == 0);
+      return iconv.decode(buf.subarray(0, index), 'win1251');
+    case 'strasciiwinle':
+      buf = Buffer.alloc(strlength);
+      buf = buffer.subarray(offset * 2, offset * 2 + strlength);
+      buf = buf.reverse()
+      index = buf.findIndex((item) => item == 0);
+      return iconv.decode(buf.subarray(0, index), 'win1251');
+    case 'strasciiwinsb':
+      buf = Buffer.alloc(strlength);
+      buf = buffer.subarray(offset * 2, offset * 2 + strlength);
+      buf.reverse();
+      buf = reverseByte(buf);
+      index = buf.findIndex((item) => item == 0);
+      return iconv.decode(buf.subarray(0, index), 'win1251');
     case 'strutf8be':
       buf = Buffer.alloc(strlength * 2);
       buf = buffer.toString('utf-8', offset * 2, offset * 2 + strlength * 2);
@@ -628,7 +654,7 @@ function parseBufferWrite(value, item) {
       if (a0.length % 2 == 1) {
         a0 = Buffer.concat([a0, strbuf]);
       }
-      a0 = reverseByte(a0);      
+      a0 = reverseByte(a0);
       buffer = a0.subarray(0, strlength)
       break;
     case 'strasciile':
@@ -647,7 +673,40 @@ function parseBufferWrite(value, item) {
       if (a1.length % 2 == 1) {
         a1 = Buffer.concat([a1, strbuf]);
       }
-      buffer = reverseByte(a1);      
+      buffer = reverseByte(a1);
+      break;
+    case 'strasciiwinbe':
+      a0 = iconv.encode(value, 'win1251');
+      if (a0.length % 2 == 1) {
+        a0 = Buffer.concat([a0, strbuf]);
+      }
+      buffer = a0.subarray(0, strlength)
+      break;
+    case 'strasciiwinsw':
+      a0 = iconv.encode(value, 'win1251');
+      if (a0.length % 2 == 1) {
+        a0 = Buffer.concat([a0, strbuf]);
+      }
+      a0 = reverseByte(a0);
+      buffer = a0.subarray(0, strlength)
+      break;
+    case 'strasciiwinle':
+      a0 = iconv.encode(value, 'win1251');
+      a0 = a0.reverse();
+      a1 = a0.subarray(0, strlength);
+      if (a1.length % 2 == 1) {
+        a1 = Buffer.concat([a1, strbuf]);
+      }
+      buffer = a1;
+      break;
+    case 'strasciiwinsb':
+      a0 = iconv.encode(value, 'win1251');
+      a0.reverse();
+      a1 = a0.subarray(0, strlength);
+      if (a1.length % 2 == 1) {
+        a1 = Buffer.concat([a1, strbuf]);
+      }
+      buffer = reverseByte(a1);
       break;
     case 'strutf8be':
       a0 = Buffer.from(value, 'utf-8');
@@ -737,6 +796,10 @@ function getVarLen(vartype, strlength) {
     case 'strasciile':
     case 'strasciisw':
     case 'strasciisb':
+    case 'strasciiwinbe':
+    case 'strasciiwinle':
+    case 'strasciiwinsw':
+    case 'strasciiwinsb':
       return Math.ceil(strlength / 2);
 
     case 'strutf8be':

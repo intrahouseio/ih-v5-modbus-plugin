@@ -121,6 +121,10 @@
         {
           "id": "strascii",
           "title": "STRING ASCII"
+        },
+        {
+          "id": "strasciiwin",
+          "title": "STRING ASCII WIN1251"
         }
       ],
 
@@ -131,7 +135,7 @@
       "title": "$strlength",
       "type": "input",
       "default": "1",
-      "hide": "data.p2.vartype.id != 'strutf8' && data.p2.vartype.id != 'strascii'"
+      "hide": "data.p2.vartype.id != 'strutf8' && data.p2.vartype.id != 'strascii' && data.p2.vartype.id != 'strasciiwin'"
     },
     { "prop": "manbo", "title": "$manbo", "type": "cb"},
     {
@@ -216,7 +220,7 @@
         }
       ],
       "default": "be",
-      "hide": "!data.p2.manbo || (data.p2.vartype.id !== 'uint64' && data.p2.vartype.id !== 'int64' && data.p2.vartype.id !== 'double' && data.p2.vartype.id != 'strutf8' && data.p2.vartype.id != 'strascii')"
+      "hide": "!data.p2.manbo || (data.p2.vartype.id !== 'uint64' && data.p2.vartype.id !== 'int64' && data.p2.vartype.id !== 'double' && data.p2.vartype.id != 'strutf8' && data.p2.vartype.id != 'strascii' && data.p2.vartype.id != 'strasciiwin')"
     },
     {
       "prop": "fcr",
