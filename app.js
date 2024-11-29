@@ -707,7 +707,7 @@ module.exports = {
       return vt + item.manbo8;
     }
 
-    if (vt == 'strascii' || 'strasciiwin' || vt == 'strutf8') {
+    if (vt == 'strascii' || vt == 'strasciiwin' || vt == 'strutf8') {
       return vt + item.manbo64;
     }
 
