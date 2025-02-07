@@ -55,6 +55,7 @@ function getRequests(channels, params) {
         address: item.address,
         polltimefctr: item.polltimefctr || 1,
         curpoll: 1,
+        curretries: 1,
         ref: []
       };
     }
@@ -116,6 +117,7 @@ function getPolls(channels, params) {
         address: item.address,
         polltimefctr: item.polltimefctr || 1,
         curpoll: 1,
+        curretries: 1,
         ref: []
       };
     }
@@ -165,6 +167,7 @@ function getPolls(channels, params) {
         grmanstr: item.parentnodefolder ? item.parentnodefolder + item.grmanstr : item.grmanstr,
         polltimefctr: item.polltimefctr || 1,
         curpoll: 1,
+        curretries: 1,
         ref: []
       };
     }
@@ -205,6 +208,7 @@ function getPolls(channels, params) {
           address: item.address,
           polltimefctr: item.polltimefctr || 1,
           curpoll: 1,
+          curretries: 1,
           ref: [getRefobj(item)]
         });
       }
@@ -237,7 +241,8 @@ function getRefobj(item) {
     title,
     vartype: item.vartype,
     strlength: item.strlength,
-    widx: 0
+    widx: 0,
+    curretries:1
   };
 
   if (item.vartype != 'bool') {
@@ -269,6 +274,7 @@ function getPollArray(polls) {
   // Пока просто заполяем индексы всех записей
   // Нужно будет отсекать с низким приоритетом позднее
   return polls.reduce((arr, item, index) => {
+    item.curretries = 1;
     if (item.curpoll == item.polltimefctr) arr.push(index);
     return arr;
   }, []);

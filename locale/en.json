@@ -6,6 +6,7 @@
     "polldelay":"Interval between requests (ms)",
     "maxreadlen":"Max number of words when reading range",
     "showbyteorder": "Byte order settings",
+    "retries": "Number of request retries",
     "bo8":"Byte position in word (for 1-byte value)",
     "bo16":"Byte order for 2-byte values",
     "bo32":"Byte order for 4-byte values",

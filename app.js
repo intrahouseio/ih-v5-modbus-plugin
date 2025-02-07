@@ -335,7 +335,7 @@ module.exports = {
     );
 
     try {
-      let res = await this.modbusReadCommand(item.fcr, item.address, item.length, item.ref);
+      let res = await this.modbusReadCommand(item.fcr, item.address, item.length, item.ref, item);
       if (res && res.buffer) {
         const data = tools.getDataFromResponse(res.buffer, item.ref);
         if (this.params.sendChanges == 1) {
@@ -379,7 +379,7 @@ module.exports = {
     );
 
     try {
-      let res = await this.modbusReadCommand(item.fcr, item.address, item.length, item.ref);
+      let res = await this.modbusReadCommand(item.fcr, item.address, item.length, item.ref, item);
 
       return tools.parseBufferRead(res.buffer, {
         widx: item.offset,
@@ -391,7 +391,7 @@ module.exports = {
     }
   },
 
-  async modbusReadCommand(fcr, address, length, ref) {
+  async modbusReadCommand(fcr, address, length, ref, item) {
     try {
       fcr = Number(fcr);
 
@@ -408,21 +408,27 @@ module.exports = {
           throw new Error(`Функция ${fcr} на чтение не поддерживается`);
       }
     } catch (err) {
-      let charr = [];
-      ref.forEach(item => {
-        if (!this.channelsChstatus[item.id]) {
-          this.channelsChstatus[item.id] = 1;
-          charr.push({ id: item.id, chstatus: 1, title: item.title })
-        }
-      });
-      if (charr.length) this.plugin.sendData(charr);
-      this.checkError(err);
+      if (item!=undefined && item.curretries < this.params.retries) {
+        item.curretries++;
+        this.queue.unshift(item);
+      } else {
+        let charr = [];
+        ref.forEach(item => {
+          if (!this.channelsChstatus[item.id]) {
+            this.channelsChstatus[item.id] = 1;
+            charr.push({ id: item.id, chstatus: 1, title: item.title })
+          }
+        });
+        if (charr.length) this.plugin.sendData(charr);
+        this.checkError(err);
+      }
+
     }
   },
 
   async readRequest(item, allowSendNext) {
     try {
-      const res = await this.modbusReadCommand(item.fcr, item.address, item.length, item.ref);
+      const res = await this.modbusReadCommand(item.fcr, item.address, item.length, item.ref, item);
       if (res && res.buffer) {
 
         const data = tools.getDataFromResponse(res.buffer, item.ref);
@@ -461,42 +467,46 @@ module.exports = {
     } else {
       fcw = item.vartype == 'bool' ? 5 : 6;
     }
-    let val = item.value;
-    if (fcw == 6 || fcw == 16) {
-      val = tools.writeValue(item.value, item);
-      if (Buffer.isBuffer(val) && val.length > 2) fcw = 16;
+    try {
+      let val = item.value;
+      if (fcw == 6 || fcw == 16) {
+        val = tools.writeValue(item.value, item);
+        if (Buffer.isBuffer(val) && val.length > 2) fcw = 16;
 
-      if (item.bit) {
-        item.ref = [];
-        let refobj = tools.getRefobj(item);
-        refobj.widx = item.address;
-        item.ref.push(refobj);
-        const res = await this.modbusReadCommand(item.fcr, item.address, tools.getVarLen(item.vartype, item.strlength), item.ref);
-        val = res.buffer;
-        if (item.offset < 8) {
-          val[1] = item.value == 1 ? val[1] | (1 << item.offset) : val[1] & ~(1 << item.offset);
-        } else {
-          val[0] = item.value == 1 ? val[0] | (1 << (item.offset - 8)) : val[0] & ~(1 << (item.offset - 8));
+        if (item.bit) {
+          item.ref = [];
+          let refobj = tools.getRefobj(item);
+          refobj.widx = item.address;
+          item.ref.push(refobj);
+          const res = await this.modbusReadCommand(item.fcr, item.address, tools.getVarLen(item.vartype, item.strlength), item.ref);
+          if (res && res.buffer) {
+            val = res.buffer;
+            if (item.offset < 8) {
+              val[1] = item.value == 1 ? val[1] | (1 << item.offset) : val[1] & ~(1 << item.offset);
+            } else {
+              val[0] = item.value == 1 ? val[0] | (1 << (item.offset - 8)) : val[0] & ~(1 << (item.offset - 8));
+            }
+          }
         }
+
       }
 
-    }
+      this.plugin.log(
+        `WRITE: unitId = ${item.unitid}, FC = ${fcw}, address = ${this.showAddress(item.address)}, value = ${util.inspect(
+          val
+        )}`,
+        1
+      );
 
-    this.plugin.log(
-      `WRITE: unitId = ${item.unitid}, FC = ${fcw}, address = ${this.showAddress(item.address)}, value = ${util.inspect(
-        val
-      )}`,
-      1
-    );
+      // Результат на запись - принять!!
 
-    // Результат на запись - принять!!
-    try {
       let res = await this.modbusWriteCommand(fcw, item.address, val);
 
       // Получили ответ при записи
+
       this.plugin.log(`Write result: ${util.inspect(res)}`, 1);
 
-      if (item.force) {
+      if (item.force && res != undefined) {
         // Только если адрес для чтения и записи одинаковый
         // Отправить значение этого канала как при чтении
         this.plugin.sendData([{ id: item.id, value: item.value }]);
@@ -525,40 +535,42 @@ module.exports = {
     } else {
       fcw = item.vartype == 'bool' ? 5 : 6;
     }
+    try {
+      let val = item.value;
+      if (fcw == 6 || fcw == 16) {
+        val = tools.writeValue(item.value, item);
+        if (Buffer.isBuffer(val) && val.length > 2) fcw = 16;
 
-    let val = item.value;
-    if (fcw == 6 || fcw == 16) {
-      val = tools.writeValue(item.value, item);
-      if (Buffer.isBuffer(val) && val.length > 2) fcw = 16;
-
-      if (item.bit) {
-        item.ref = [];
-        let refobj = tools.getRefobj(item);
-        refobj.widx = item.address;
-        item.ref.push(refobj);
-        const res = await this.modbusReadCommand(item.fcr, item.address, tools.getVarLen(item.vartype, item.strlength), item.ref);
-        val = res.buffer;
-        if (item.offset < 8) {
-          val[1] = item.value == 1 ? val[1] | (1 << item.offset) : val[1] & ~(1 << item.offset);
-        } else {
-          val[0] = item.value == 1 ? val[0] | (1 << (item.offset - 8)) : val[0] & ~(1 << (item.offset - 8));
+        if (item.bit) {
+          item.ref = [];
+          let refobj = tools.getRefobj(item);
+          refobj.widx = item.address;
+          item.ref.push(refobj);
+          const res = await this.modbusReadCommand(item.fcr, item.address, tools.getVarLen(item.vartype, item.strlength), item.ref);
+          if (res && res.buffer) {
+            val = res.buffer;
+            if (item.offset < 8) {
+              val[1] = item.value == 1 ? val[1] | (1 << item.offset) : val[1] & ~(1 << item.offset);
+            } else {
+              val[0] = item.value == 1 ? val[0] | (1 << (item.offset - 8)) : val[0] & ~(1 << (item.offset - 8));
+            }
+          }
         }
       }
-    }
 
-    this.plugin.log(
-      `WRITE: unitId = ${item.unitid}, FC = ${fcw}, address = ${this.showAddress(item.address)}, value = ${util.inspect(
-        val
-      )}`,
-      1
-    );
+      this.plugin.log(
+        `WRITE: unitId = ${item.unitid}, FC = ${fcw}, address = ${this.showAddress(item.address)}, value = ${util.inspect(
+          val
+        )}`,
+        1
+      );
 
-    try {
+
       // let val = tools.writeValue(item.value, item);
-
+      
       let res = await this.modbusWriteCommand(fcw, item.address, val);
       this.plugin.log(`Write result: ${util.inspect(res)}`, 1);
-      if (item.force) {
+      if (item.force && res != undefined) {
         this.plugin.sendData([{ id: item.id, value: item.value }]);
       }
 

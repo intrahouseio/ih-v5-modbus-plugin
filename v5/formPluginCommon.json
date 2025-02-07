@@ -189,6 +189,12 @@
       "type": "number"
     },
     {
+      "prop": "retries",
+      "title": "$retries",
+      "default": 3,
+      "type": "number"
+    },
+    {
       "prop": "showbyteorder",
       "title": "$showbyteorder",
       "type": "cb"
