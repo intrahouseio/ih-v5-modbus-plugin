@@ -1,5 +1,7 @@
 {
     "transport":"Транспорт",
+    "use_redundancy": "Включить резервирование",
+    "host_redundancy": "Резервный IP",
     "port":"Порт",
     "getlistofCOMs": "Получить список COM портов",
     "timeout":"Ожидание ответа на запрос (ms)",

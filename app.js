@@ -13,6 +13,7 @@ module.exports = {
   channelsData: {},
   channelsChstatus: {},
   qToRead: [],
+  redundancy: 0,
 
   async start(plugin) {
     this.plugin = plugin;
@@ -29,19 +30,18 @@ module.exports = {
       process.exit(0);
     });
 
+    process.send({ type: 'procinfo', data: { redundancy_state: this.params.use_redundancy } });
+    process.send({ type: 'procinfo', data: { current_host: this.params.host } });
+    process.send({ type: 'procinfo', data: { current_state: this.redundancy } });
     try {
       await this.updateChannels(false);
-
-      let connectionStr =
-        this.params.transport !== 'rtu' ? `${this.params.host}:${this.params.port}`
-          : this.params.autoCom ? this.params.serialport : this.params.serialportman;
 
       this.client = new Modbus();
 
       this.client.setTimeout(this.params.timeout);
 
-      await this.connect();
-      this.plugin.log(`Connected to ${connectionStr}`, 1);
+      const result = await this.connect();
+      this.plugin.log(result, 1)
       this.setWorking();
 
       await this.sendNext();
@@ -244,10 +244,14 @@ module.exports = {
     try {
       switch (this.params.transport) {
         case 'tcp':
-          this.plugin.log(`Connecting options = ${util.inspect(options)}`, 1);
+          this.plugin.log(`Connecting to ${this.params.host}, options = ${util.inspect(options)}`, 1);
           await this.client.connectTCP(this.params.host, options);
-
-          break;
+          if (this.params.use_redundancy) {
+            this.redundancy = 0;
+            process.send({ type: 'procinfo', data: { current_host: this.params.host } });
+            process.send({ type: 'procinfo', data: { current_state: this.redundancy } });
+          }
+          return `Connectection established to ${this.params.host}, options = ${util.inspect(options)}`;
         /* case 'udp':
           this.plugin.log(`Connecting options = ${this.params.transport} ${this.params.host} ${util.inspect(options)}`, 1);
           await this.client.connectUDP(this.params.host, options);
@@ -256,13 +260,11 @@ module.exports = {
         case 'rtutcp':
           this.plugin.log(`Connecting options = ${util.inspect(options)}`, 1);
           await this.client.connectTcpRTUBuffered(this.params.host, options);
-
-          break;
+          return `Connectection established to ${this.params.host}, options = ${util.inspect(options)}`;
         case 'rtuOverTcp':
           this.plugin.log(`Connecting options = ${util.inspect(options)}`, 1);
           await this.client.connectTelnet(this.params.host, options);
-
-          break;
+          return `Connectection established to ${this.params.host}, options = ${util.inspect(options)}`;
         case 'rtu':
           options = {
             baudRate: +this.params.baudRate,
@@ -273,8 +275,7 @@ module.exports = {
 
           this.plugin.log(`Connecting options = ${util.inspect(options)}`, 1);
           await this.client.connectRTUBuffered(this.params.autoCom ? this.params.serialport : this.params.serialportman, options);
-
-          break;
+          return `Connectection established to ${this.params.autoCom ? this.params.serialport : this.params.serialportman}, options = ${util.inspect(options)}`;
         case 'ascii':
           options = {
             baudRate: +this.params.baudRate,
@@ -285,24 +286,41 @@ module.exports = {
 
           this.plugin.log(`Connecting options = ${util.inspect(options)}`, 1);
           await this.client.connectAsciiSerial(this.params.autoCom ? this.params.serialport : this.params.serialportman, options);
-
-          break;
+          return `Connectection established to ${this.params.autoCom ? this.params.serialport : this.params.serialportman}, options = ${util.inspect(options)}`;
         default:
           throw new Error(`Протокол ${this.params.transport} еще не имплементирован`);
       }
     } catch (err) {
-      let charr = [];
-      this.channels.forEach(chitem => {
-        if (!this.channelsChstatus[chitem.id]) {
-          charr.push({ id: chitem.id, chstatus: 1, title: chitem.title })
-          this.channelsChstatus[chitem.id] = 1;
-        }
-      })
-      if (charr.length > 0) this.plugin.sendData(charr);
 
-      this.checkError(err);
-      this.plugin.log(`Connection fail! EXIT`, 1);
-      process.exit(1);
+      if (this.params.transport == 'tcp' && this.params.use_redundancy && !this.redundancy) {
+        this.plugin.log(`Connection to Primary host fail!`, 1);
+        try {
+          //options = { port: 1503 }
+          this.plugin.log(`Connecting to ${this.params.host_redundancy} options = ${util.inspect(options)}`, 1);
+          await this.client.connectTCP(this.params.host_redundancy, options);
+          this.redundancy = 1;
+          process.send({ type: 'procinfo', data: { current_host: this.params.host_redundancy } });
+          process.send({ type: 'procinfo', data: { current_state: this.redundancy } });
+          return `Connectection established to ${this.params.host_redundancy}, options = ${util.inspect(options)}`;
+        } catch (e) {
+          this.checkError(e);
+          this.plugin.log(`Connection to Redundancy host fail! EXIT`, 1);
+          process.exit(1);
+        }
+      } else {
+        let charr = [];
+        this.channels.forEach(chitem => {
+          if (!this.channelsChstatus[chitem.id]) {
+            charr.push({ id: chitem.id, chstatus: 1, title: chitem.title })
+            this.channelsChstatus[chitem.id] = 1;
+          }
+        })
+        if (charr.length > 0) this.plugin.sendData(charr);
+
+        this.checkError(err);
+        this.plugin.log(`Connection fail! EXIT`, 1);
+        process.exit(1);
+      }
     }
   },
 
@@ -408,21 +426,38 @@ module.exports = {
           throw new Error(`Функция ${fcr} на чтение не поддерживается`);
       }
     } catch (err) {
-      if (item!=undefined && item.curretries < this.params.retries) {
+      if (item != undefined && item.curretries < this.params.retries) {
         item.curretries++;
         this.queue.unshift(item);
       } else {
-        let charr = [];
-        ref.forEach(item => {
-          if (!this.channelsChstatus[item.id]) {
-            this.channelsChstatus[item.id] = 1;
-            charr.push({ id: item.id, chstatus: 1, title: item.title })
+        if (this.params.transport == 'tcp' && this.params.use_redundancy) {
+          this.plugin.log(`Timeout from Primary host!`, 1);
+          try {
+            let options = { port: this.params.port };
+            let curhost = this.redundancy == 0 ? this.params.host_redundancy : this.params.host;
+            this.plugin.log(`Connecting to ${curhost} options = ${util.inspect(options)}`, 1);
+            await this.client.connectTCP(curhost, options);
+            this.redundancy = curhost == this.params.host ? 0 : 1;
+            process.send({ type: 'procinfo', data: { current_host: curhost } });
+            process.send({ type: 'procinfo', data: { current_state: this.redundancy } });
+            return `Connectection established to ${curhost}, options = ${util.inspect(options)}`;
+          } catch (e) {
+            this.checkError(e);
+            this.plugin.log(`Connection to Redundancy host fail! EXIT`, 1);
+            process.exit(1);
           }
-        });
-        if (charr.length) this.plugin.sendData(charr);
-        this.checkError(err);
+        } else {
+          let charr = [];
+          ref.forEach(item => {
+            if (!this.channelsChstatus[item.id]) {
+              this.channelsChstatus[item.id] = 1;
+              charr.push({ id: item.id, chstatus: 1, title: item.title })
+            }
+          });
+          if (charr.length) this.plugin.sendData(charr);
+          this.checkError(err);
+        }
       }
-
     }
   },
 
@@ -567,7 +602,7 @@ module.exports = {
 
 
       // let val = tools.writeValue(item.value, item);
-      
+
       let res = await this.modbusWriteCommand(fcw, item.address, val);
       this.plugin.log(`Write result: ${util.inspect(res)}`, 1);
       if (item.force && res != undefined) {
@@ -616,11 +651,17 @@ module.exports = {
   },
 
   async sendNext(single) {
-    // if (this.params.transport != 'tcp' && !this.client.isOpen) {
-    if (!this.client.isOpen) {
-      this.plugin.log('Port not open! TRY RECONNECT', 1);
-      // await this.connect();
-      this.plugin.exit(1, 'Port not open!!!!');
+    if (this.params.use_redundancy) {
+      if (!this.client.isOpen) {
+        const result = await this.connect();
+        this.plugin.log(result, 1);
+      }
+    } else {
+      if (!this.client.isOpen) {
+        this.plugin.log('Port not open! TRY RECONNECT', 1);
+        // await this.connect();
+        this.plugin.exit(1, 'Port not open!!!!');
+      }
     }
 
     let isOnce = false;

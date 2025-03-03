@@ -1,5 +1,7 @@
 {
     "transport":"Transport",
+    "use_redundancy": "Use Redundancy",
+    "host_redundancy": "Redundancy host",
     "port":"Port",
     "getlistofCOMs": "Get list of COM ports",
     "timeout":"Waiting for response to request (ms)",

@@ -61,5 +61,10 @@
     "ks": 100,
     "kh0": 0,
     "kh": 100
-  }
+  },
+
+  "ext": [{ "prop": "redundancy_state", "note": "Redundancy state", "vtype": "N" },
+            { "prop": "current_host", "note": "Current host", "vtype": "N" },
+            { "prop": "current_state", "note": "Current endpoint", "vtype": "N" }
+        ]
 }
