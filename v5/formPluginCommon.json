@@ -203,6 +203,12 @@
       "type": "number"
     },
     {
+      "prop": "maxbitreadlen",
+      "title": "$maxbitreadlen",
+      "default": 1000,
+      "type": "number"
+    },
+    {
       "prop": "retries",
       "title": "$retries",
       "default": 3,

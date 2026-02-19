@@ -31,7 +31,7 @@ function getRequests(channels, params) {
   }
 
   let result = [];
-  const maxReadLen = params.maxreadlen || 240;
+  let maxReadLen;// = params.maxreadlen || 240;
 
   channels.sort(byorder('unitid,fcr,address'));
 
@@ -42,6 +42,11 @@ function getRequests(channels, params) {
 
   while (i < config.length) {
     let item = config[i];
+    if (item.fcr == 1 || item.fcr == 2) {
+      maxReadLen = params.maxbitreadlen || 1000;
+    } else {
+      maxReadLen = params.maxreadlen || 240;
+    }
     if (!current || isDiffBlock(item) || getLengthAfterAdd(item) > maxReadLen) {
       // Записать предыдущий элемент
       if (current && length) {
@@ -90,7 +95,8 @@ function getPolls(channels, params) {
   }
 
   let result = [];
-  let maxReadLen = params.maxreadlen || 240;
+  let maxReadLen;
+  
 
   channels.sort(byorder('unitid,fcr,address'));
 
@@ -103,6 +109,11 @@ function getPolls(channels, params) {
 
   while (i < config.length) {
     let item = config[i];
+    if (item.fcr == 1 || item.fcr == 2) {
+      maxReadLen = params.maxbitreadlen || 1000;
+    } else {
+      maxReadLen = params.maxreadlen || 240;
+    }
     if (!current || isDiffBlock(item) || getLengthAfterAdd(item) > maxReadLen) {
       // Записать предыдущий элемент
       if (current && length) {
@@ -151,6 +162,11 @@ function getPolls(channels, params) {
   const configMan = channels.filter(item => item.gr && item.grman && item.r && !item.req);
   configMan.sort(byorder('unitid,grmanstr,address,polltimefctr'));
   configMan.forEach(item => {
+    if (item.fcr == 1 || item.fcr == 2) {
+      maxReadLen = params.maxbitreadlen || 1000;
+    } else {
+      maxReadLen = params.maxreadlen || 125;
+    }
     if (!currentMan || isDiffBlockMan(item) || getLengthManAfterAdd(item) > maxReadLen) {
       // Записать предыдущий элемент
       if (currentMan && lengthMan) {
